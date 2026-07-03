@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6834597e7f8c9d945966ce6e63fa4937, type: 3}
+  m_Name: LineUpDefinition
+  m_EditorClassIdentifier: Assembly-CSharp::GestureDefinition
+  gestureName: Line Up (Legacy)
+  animatorTriggerName: Line Up (Legacy)
+  keywords:
+  - line up
+  - align
+  - in a row
+  - lined up
+  - lines up
+  - lining up
+  - lining them up
+  - line them up
+  - all line up
+  - all lined up
+  - center
+  - in a row
+  - middle
+  - line it up
+  - lines up
+  - lined up
+  - line the chromosome
+  timeScale: 1
+  advanceSeconds: 0
+  fallbackDelaySeconds: 2
+  logEmoji: "\U0001F3AD"

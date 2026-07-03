@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "com.hecomi.ulipsync": "https://github.com/hecomi/uLipSync.git#upm",
     "com.unity.ai.assistant": "2.13.0-pre.2",
     "com.unity.ai.inference": "2.6.1",
     "com.unity.feature.development": "1.0.2",
@@ -14,7 +15,7 @@
     "com.unity.xr.compositionlayers": "2.4.0",
     "com.unity.xr.core-utils": "2.6.0",
     "com.unity.xr.hands": "1.8.0",
-    "com.unity.xr.interaction.toolkit": "3.5.0",
+    "com.unity.xr.interaction.toolkit": "3.5.1",
     "com.unity.xr.management": "4.5.4",
     "com.unity.xr.meta-openxr": "2.5.0",
     "com.unity.xr.openxr": "1.17.1",
