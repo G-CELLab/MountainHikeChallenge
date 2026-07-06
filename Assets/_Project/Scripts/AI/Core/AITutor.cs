@@ -90,10 +90,21 @@ public class AITutor : MonoBehaviour
     private readonly SortedDictionary<int, AudioClip> _orderedClipQueue
         = new SortedDictionary<int, AudioClip>();
 
+    private static bool _persisted = false;
+
     // ── Lifecycle ─────────────────────────────────────────────────────────────
 
     private void Awake()
     {
+        if (_persisted)
+        {
+            Debug.LogWarning("[AITutor] Duplicate AITutor detected — destroying this instance.");
+            Destroy(transform.root.gameObject);
+            return;
+        }
+        _persisted = true;
+        DontDestroyOnLoad(transform.root.gameObject);
+
         _generator  = GetComponent<AIResponseGenerator>();
 
         if (ttsPlayer           == null) ttsPlayer           = FindAnyObjectByType<TextToSpeechPlayer>();
