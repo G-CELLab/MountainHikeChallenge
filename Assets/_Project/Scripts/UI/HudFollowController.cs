@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 /// <summary>
@@ -9,6 +10,12 @@ using UnityEngine;
 /// movement. This instead only starts catching up once the player has
 /// turned far enough that the panel would otherwise leave their view, then
 /// eases toward the new position/rotation rather than snapping.
+///
+/// IMPORTANT: this only ever reads headTransform (the XR camera). It has no
+/// dependency on controllers, thumbsticks, or any input device — head
+/// rotation alone (physical neck movement in a real headset) is what drives
+/// repositioning. That means it works identically for a hand-tracking-only,
+/// auto-walked setup with no locomotion input at all.
 ///
 /// Attach this to the root of the HUD Canvas (the same object BodyDashboardHUD
 /// lives on, or its parent) — NOT as a child of the camera.
@@ -33,6 +40,10 @@ public class HUDFollowController : MonoBehaviour
     [Tooltip("Ignore head pitch (looking up/down) when orienting the panel, so it always stays upright instead of tilting with the camera.")]
     public bool keepUpright = true;
 
+    [Header("Startup")]
+    [Tooltip("Frames to wait before the first snap, so XR tracking has reported a real head position/rotation instead of the rig's raw pre-tracking transform (often (0,0,0) locally, which is what was causing the panel to appear below the floor on scene start).")]
+    public int startupDelayFrames = 3;
+
     private Vector3 _targetPosition;
     private Quaternion _targetRotation;
     private bool _initialized;
@@ -47,18 +58,24 @@ public class HUDFollowController : MonoBehaviour
             if (cam != null) headTransform = cam.transform;
         }
 
+        _initialized = false;
+        StartCoroutine(DelayedFirstSnap());
+    }
+
+    private IEnumerator DelayedFirstSnap()
+    {
+        // Wait a few frames so XR tracking has had a chance to report a real
+        // pose before we snap to it. Snapping on frame 0 risks reading the
+        // rig's raw pre-tracking transform.
+        for (int i = 0; i < Mathf.Max(1, startupDelayFrames); i++)
+            yield return null;
+
         if (headTransform != null) SnapToHead();
     }
 
     private void LateUpdate()
     {
-        if (headTransform == null) return;
-
-        if (!_initialized)
-        {
-            SnapToHead();
-            return;
-        }
+        if (headTransform == null || !_initialized) return;
 
         Vector3 desiredPosition = ComputeDesiredPosition();
         Quaternion desiredRotation = ComputeDesiredRotation(desiredPosition);

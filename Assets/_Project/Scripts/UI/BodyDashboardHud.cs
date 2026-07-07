@@ -8,9 +8,12 @@ using TMPro;
 /// Per technical_architecture.md this must be World Space, not Screen Space,
 /// since Screen Space Canvases don't render correctly in VR.
 ///
+/// Mountain progress is shown via mountainProgressFillImage — an Image with
+/// Image Type = Filled, whose fillAmount is driven directly. This matches
+/// the ATP-style progress bar prefab used in the project rather than a
+/// Unity Slider component.
+///
 /// This script only reacts to GameManager — it has no game logic of its own.
-/// Wire up references in the Inspector once the BodyDashboardHUD prefab's
-/// Canvas is built (progress slider, label, one indicator entry per system).
 /// </summary>
 public class BodyDashboardHUD : MonoBehaviour
 {
@@ -27,10 +30,15 @@ public class BodyDashboardHUD : MonoBehaviour
     }
 
     [Header("Mountain Progress")]
-    public Slider mountainProgressSlider;
+    [Tooltip("An Image with Image Type = Filled. Its fillAmount is set directly — " +
+             "used for the ATP-style progress bar prefab.")]
+    public Image mountainProgressFillImage;
     public TMP_Text progressLabel;
 
     [Header("System Indicators")]
+    [Tooltip("One entry per BodySystem. Build 6 colored circle Images in the " +
+             "Canvas (Nervous, Skeletal, Muscular, Circulatory, Respiratory, Digestive) " +
+             "and drag each into a slot here.")]
     public List<SystemIndicator> systemIndicators = new List<SystemIndicator>();
 
     [Header("Debug")]
@@ -83,7 +91,7 @@ public class BodyDashboardHUD : MonoBehaviour
 
     private void HandleProgressChanged(float progress01)
     {
-        if (mountainProgressSlider != null) mountainProgressSlider.value = progress01;
+        if (mountainProgressFillImage != null) mountainProgressFillImage.fillAmount = progress01;
         if (progressLabel != null) progressLabel.text = $"{Mathf.RoundToInt(progress01 * 100f)}% to summit";
     }
 
