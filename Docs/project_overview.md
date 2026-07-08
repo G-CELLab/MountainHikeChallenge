@@ -4,14 +4,6 @@
 
 Mountain Hike Challenge is a prototype VR simulation designed for 7th grade biology students in Cache County, Utah. Students hike up Mount Timpanogos and, when the climb becomes physically demanding, shrink inside their own body to interact with the organ systems that are working to keep them moving. The experience is built in Unity using the VR template and targets a six-week development timeline as a functional prototype.
 
-The project is a collaboration between:
-- **Karen Merritt** — 7th Grade Science Teacher, Juniper Ridge Middle School (content expert, learning objectives)
-- **Hillary Swanson** — Assistant Professor, Utah State University (research lead)
-- **Taehyun Kim** — USU (project lead, development oversight)
-- **Tonmoy Roy** — Storyboard, scene design, AI guide, scripts
-- **Joshua Wagner** — XR interaction systems, hand tracking, gesture detection
-- **Ben Tangen** — Development support
-
 ---
 
 ## Utah SEEd Standard

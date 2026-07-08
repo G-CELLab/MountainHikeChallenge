@@ -30,6 +30,9 @@ using UnityEngine.Events;
 ///   user has the opportunity to see all gestures during the study.
 ///   If the user speaks during narration, their query is queued and answered
 ///   immediately after narration completes.
+///   OnNarrationCompleted fires once a narration line finishes playing
+///   (not fired if interrupted) — SceneNarrationController listens to this
+///   to know when it's safe to transition to the next scene.
 ///
 /// Logging:
 ///   Both EnqueueTTS() and the narration path call
@@ -66,9 +69,10 @@ public class AITutor : MonoBehaviour
     [SerializeField] private float interruptTimeoutSec = 1.5f;
 
     [Header("Events")]
-    public UnityEvent<string> OnResponseStarted   = new UnityEvent<string>();
-    public UnityEvent<string> OnResponseCompleted = new UnityEvent<string>();
-    public UnityEvent<string> OnErrorOccurred     = new UnityEvent<string>();
+    public UnityEvent<string> OnResponseStarted    = new UnityEvent<string>();
+    public UnityEvent<string> OnResponseCompleted  = new UnityEvent<string>();
+    public UnityEvent<string> OnErrorOccurred      = new UnityEvent<string>();
+    public UnityEvent<string> OnNarrationCompleted = new UnityEvent<string>();
 
     // ── Private state ─────────────────────────────────────────────────────────
 
@@ -305,6 +309,7 @@ public class AITutor : MonoBehaviour
         _isNarrating  = true;
         narrationLock?.Lock();
         _interrupted  = false;
+        bool narrationCompleted = false;
 
         gestureSynchronizer?.OnResponseStart();
         speechRecognizer?.NotifyTTSStarted();
@@ -335,6 +340,8 @@ public class AITutor : MonoBehaviour
                     yield return null;
                 }
             }
+
+            narrationCompleted = !_interrupted;
         }
         finally
         {
@@ -357,6 +364,9 @@ public class AITutor : MonoBehaviour
         // ── drain pending narrations ──────────────────────────────────────────
         if (!_interrupted && _pendingNarrations.Count > 0)
             SpeakNarration(_pendingNarrations.Dequeue());
+
+        if (narrationCompleted)
+            OnNarrationCompleted.Invoke(text);
     }
 
     private void EnqueueTTSNarration(string text)
@@ -629,6 +639,9 @@ public class AITutor : MonoBehaviour
         {
             NarrationLines.Intro,
             NarrationLines.Trailhead,
+            NarrationLines.Nervous,
+            NarrationLines.Skeletal,
+            NarrationLines.SteepIncline,
             NarrationLines.Circulatory,
             NarrationLines.Respiratory,
             NarrationLines.Digestive,

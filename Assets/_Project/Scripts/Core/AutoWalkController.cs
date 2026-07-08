@@ -6,11 +6,18 @@ using UnityEngine.Events;
 /// Waypoint-based auto-walk for the XR rig along the mountain trail.
 ///
 /// Drop an empty GameObject with this script on it into MountainTrail.unity,
-/// assign a chain of empty Transforms as waypoints, and drag the XR rig's
-/// root transform into rigToMove. Call BeginAutoWalk() from a trigger volume,
-/// a button, or SceneTransitionManager to walk the student hands-off through
-/// a trail segment (e.g. the easy walk before the incline, or the final
-/// stretch to the summit).
+/// assign a chain of empty Transforms as waypoints, and either drag the XR
+/// rig's root transform into rigToMove OR leave it empty — since the rig
+/// lives in the persistent _Bootstrap scene (a different scene file than
+/// this component), it can't actually be wired via drag-and-drop here;
+/// leaving it null lets this auto-resolve it at runtime via
+/// PlayerRigPositioner, which DOES hold a valid reference (it lives
+/// alongside the rig in _Bootstrap).
+///
+/// Call BeginAutoWalk() from a trigger volume, a button, or
+/// SceneTransitionManager to walk the student hands-off through a trail
+/// segment (e.g. the easy walk before the incline, or the final stretch to
+/// the summit).
 ///
 /// Reports overall progress (0-1 across the whole waypoint chain) to
 /// GameManager as it walks, so the HUD progress bar moves smoothly instead
@@ -19,7 +26,11 @@ using UnityEngine.Events;
 public class AutoWalkController : MonoBehaviour
 {
     [Header("References")]
-    [Tooltip("The XR rig root (XR Origin or equivalent) that should move.")]
+    [Tooltip("The XR rig root (XR Origin or equivalent) that should move. " +
+             "Leave empty — the rig lives in the persistent _Bootstrap scene, so it " +
+             "can't be assigned here via the Inspector. It's auto-resolved at runtime " +
+             "from PlayerRigPositioner.rigTransform instead. Only fill this in manually " +
+             "if you're testing this scene in isolation with a local rig stand-in.")]
     public Transform rigToMove;
 
     [Header("Path")]
@@ -52,6 +63,8 @@ public class AutoWalkController : MonoBehaviour
 
     public void BeginAutoWalk()
     {
+        ResolveRigIfNeeded();
+
         if (rigToMove == null || waypoints == null || waypoints.Length == 0)
         {
             Debug.LogWarning("[AutoWalkController] Missing rig or waypoints — cannot start auto-walk.");
@@ -66,6 +79,32 @@ public class AutoWalkController : MonoBehaviour
     {
         if (_walkRoutine != null) StopCoroutine(_walkRoutine);
         IsWalking = false;
+    }
+
+    // ── Rig resolution ────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// The XR rig lives in the persistent _Bootstrap scene, which isn't the
+    /// same scene file as this component, so it can't be wired via the
+    /// Inspector here. PlayerRigPositioner DOES hold a valid reference to it
+    /// (it lives alongside the rig in _Bootstrap), so borrow that instead of
+    /// requiring a second, impossible-to-set-up reference on this script.
+    /// </summary>
+    private void ResolveRigIfNeeded()
+    {
+        if (rigToMove != null) return;
+
+        var positioner = FindAnyObjectByType<PlayerRigPositioner>();
+        if (positioner != null && positioner.rigTransform != null)
+        {
+            rigToMove = positioner.rigTransform;
+            if (verbose) Debug.Log("[AutoWalkController] Resolved rigToMove from PlayerRigPositioner.");
+        }
+        else if (verbose)
+        {
+            Debug.LogWarning("[AutoWalkController] Could not resolve rigToMove — no PlayerRigPositioner " +
+                              "found, or its rigTransform is unassigned.");
+        }
     }
 
     // ── Walk routine ──────────────────────────────────────────────────────────

@@ -7,7 +7,7 @@ TerrainLayer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: MountainSide
-  m_DiffuseTexture: {fileID: 2800000, guid: b2766e330f67bc74b90720c501d9fe01, type: 3}
+  m_DiffuseTexture: {fileID: 2800000, guid: 319adc7d9f08d654a854fd141a197589, type: 3}
   m_NormalMapTexture: {fileID: 0}
   m_MaskMapTexture: {fileID: 0}
   m_TileSize: {x: 2, y: 2}

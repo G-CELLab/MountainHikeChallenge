@@ -10,6 +10,9 @@ using System;
 public enum AnatomySceneId
 {
     Trailhead,
+    Nervous,
+    Skeletal,
+    SteepIncline,
     Circulatory,
     Respiratory,
     Digestive,
@@ -150,6 +153,39 @@ public static class AnatomyTutorSession
                     "Glowing neurons, spinal cord pathway, knee joints, and the guide's spine gesture.",
                     string.IsNullOrWhiteSpace(progressSummary)
                         ? "Trailhead ready. The climb has just begun."
+                        : progressSummary);
+
+            case AnatomySceneId.Nervous:
+                return new AnatomyTutorSceneSnapshot(
+                    sceneId,
+                    "nervous",
+                    "The student is focused on the nervous system — the brain sending the signal to move down the spinal cord.",
+                    "Trace the signal down the spine and tap the glowing neurons to send it toward the legs.",
+                    "Glowing neurons, spinal cord pathway, and the guide's spine-tracing gesture.",
+                    string.IsNullOrWhiteSpace(progressSummary)
+                        ? "Nervous scene ready. The signal to move is just starting."
+                        : progressSummary);
+
+            case AnatomySceneId.Skeletal:
+                return new AnatomyTutorSceneSnapshot(
+                    sceneId,
+                    "skeletal",
+                    "The student is focused on the skeletal system — the joints locking into place so the muscles have something to pull against.",
+                    "Lock the knee joints into place to stabilize the body before the first step.",
+                    "Knee joints, interlocking bone structures, and the guide gesturing toward the legs.",
+                    string.IsNullOrWhiteSpace(progressSummary)
+                        ? "Skeletal scene ready. The joints are locking into place."
+                        : progressSummary);
+
+            case AnatomySceneId.SteepIncline:
+                return new AnatomyTutorSceneSnapshot(
+                    sceneId,
+                    "steep_incline",
+                    "The student is back on the mountain trail, further up the climb. The trail has gotten steeper and the body is working harder.",
+                    "Notice the legs working harder and the heart beating faster as the demand increases.",
+                    "The steeper trail, the mountain scenery further up, and the guide commenting on the increased effort.",
+                    string.IsNullOrWhiteSpace(progressSummary)
+                        ? "Steep incline reached. The body is working harder than before."
                         : progressSummary);
 
             case AnatomySceneId.Circulatory:

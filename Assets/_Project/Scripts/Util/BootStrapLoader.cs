@@ -13,7 +13,7 @@ using UnityEngine.SceneManagement;
 public class BootstrapLoader : MonoBehaviour
 {
     [Tooltip("The first scene to load once persistent systems are ready.")]
-    [SerializeField] private string firstSceneName = "MountainTrail";
+    [SerializeField] private string firstSceneName = "_MountainTrail";
 
     [Tooltip("Extra delay in seconds before loading, in case any singleton needs more than one frame to warm up (e.g. RAG index build).")]
     [SerializeField] private float extraDelaySeconds = 0f;
