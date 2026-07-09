@@ -138,7 +138,7 @@ public class TTSAnimatorDriver : MonoBehaviour
         animator.SetTrigger(hash);
         _lastTriggerTimeByHash[hash] = now;
 
-        MainLogger.LogAIGestureEvent(def.gestureName.ToUpperInvariant());
+        AnatomyTutorSession.RecordTutorGesture(def.gestureName.ToUpperInvariant());
 
         if (verbose)
             Debug.Log($"[TTSAnimatorDriver] {def.logEmoji} Trigger fired: '{def.animatorTriggerName}' " +

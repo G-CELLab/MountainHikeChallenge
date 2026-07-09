@@ -53,6 +53,11 @@ public class SceneNarrationController : MonoBehaviour
                  "or if you simply haven't built what comes next yet.")]
         public string nextSceneName;
 
+        [Tooltip("AnatomySceneId of nextSceneName — only used if nextSceneName is set. Passed to " +
+                 "SceneTransitionManager so it can fade and set the correct HikeState (e.g. MiniGame " +
+                 "vs Summit) for the scene we're heading INTO, same as any other transition in the game.")]
+        public AnatomySceneId nextSceneId;
+
         [Tooltip("Extra safety net: skip narration if this exact (scene, checkpoint) combo has " +
                  "already played once this session. Shouldn't normally trigger in a forward-only " +
                  "flow, but guards against odd double-loads during testing.")]
@@ -167,7 +172,14 @@ public class SceneNarrationController : MonoBehaviour
 
     private IEnumerator RunSequence(SceneFlowStep step, string sceneName)
     {
-        AnatomyTutorSession.SetScene(step.sceneId);
+        // Route through GameManager so OnSceneChanged fires (BodyDashboardHud's
+        // system-indicator highlighting depends on that event). Falls back to
+        // setting the session directly only if GameManager isn't present yet —
+        // e.g. testing this scene in isolation without Bootstrap.
+        if (GameManager.Instance != null)
+            GameManager.Instance.GoToScene(step.sceneId);
+        else
+            AnatomyTutorSession.SetScene(step.sceneId);
 
         // Scoped by scene+checkpoint, not scene name alone — a later visit to the
         // same scene name is a different step with its own visited-state.
@@ -230,17 +242,26 @@ public class SceneNarrationController : MonoBehaviour
         OnSceneNarrationCompleted?.Invoke(sceneName);
 
         if (!string.IsNullOrWhiteSpace(step.nextSceneName))
-            StartCoroutine(TransitionAfterDelay(step.nextSceneName, step.delayAfterNarrationBeforeTransition));
+            StartCoroutine(TransitionAfterDelay(step));
         else if (verbose)
             Debug.Log($"[SceneNarrationController] '{sceneName}' at checkpoint {step.checkpointIndex} has no next scene — staying put.");
     }
 
-    private IEnumerator TransitionAfterDelay(string nextSceneName, float delay)
+    private IEnumerator TransitionAfterDelay(SceneFlowStep step)
     {
-        if (delay > 0f)
-            yield return new WaitForSecondsRealtime(delay);
+        if (step.delayAfterNarrationBeforeTransition > 0f)
+            yield return new WaitForSecondsRealtime(step.delayAfterNarrationBeforeTransition);
 
-        if (verbose) Debug.Log($"[SceneNarrationController] Loading next scene: '{nextSceneName}'");
-        SceneManager.LoadScene(nextSceneName);
+        if (verbose) Debug.Log($"[SceneNarrationController] Loading next scene: '{step.nextSceneName}'");
+
+        // Hand off to SceneTransitionManager so this transition gets the same
+        // fade + HikeState handling as every other scene change in the game,
+        // instead of a second, silent SceneManager.LoadScene path that skips
+        // both. Falls back to a bare load only if no SceneTransitionManager
+        // exists yet (e.g. quick single-scene testing).
+        if (SceneTransitionManager.Instance != null)
+            SceneTransitionManager.Instance.TransitionToScene(step.nextSceneId, step.nextSceneName);
+        else
+            SceneManager.LoadScene(step.nextSceneName);
     }
 }

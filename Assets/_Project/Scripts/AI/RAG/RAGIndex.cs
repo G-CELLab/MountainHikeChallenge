@@ -34,6 +34,13 @@ public class RAGIndex
     private readonly Dictionary<string, int>           _docFreq       = new Dictionary<string, int>();
     private readonly List<Dictionary<string, float>>   _chunkTF       = new List<Dictionary<string, float>>();
 
+    // Precomputed once in Rebuild() so Retrieve() never redoes TF-IDF/vector-norm
+    // math for the same chunk twice per query. _chunkTF is kept only because
+    // TFIDF() re-weights raw term-frequency against document frequency — the
+    // two caches below are what queries actually touch.
+    private readonly List<Dictionary<string, float>>   _chunkTFIDF    = new List<Dictionary<string, float>>();
+    private readonly List<double>                      _chunkNorm     = new List<double>();
+
     private static readonly Regex WordRx =
         new Regex(@"[a-zA-Z0-9_]+", RegexOptions.Compiled);
 
@@ -42,6 +49,8 @@ public class RAGIndex
         _chunks.Clear();
         _docFreq.Clear();
         _chunkTF.Clear();
+        _chunkTFIDF.Clear();
+        _chunkNorm.Clear();
 
         if (string.IsNullOrWhiteSpace(knowledgeBaseFolder) ||
             !Directory.Exists(knowledgeBaseFolder))
@@ -72,6 +81,19 @@ public class RAGIndex
                 _docFreq[term] = _docFreq.TryGetValue(term, out int v) ? v + 1 : 1;
         }
 
+        // Second pass: now that _docFreq is final, precompute each chunk's
+        // TF-IDF vector and its norm exactly once. Retrieve() used to redo this
+        // for every chunk on every single query — with a fixed knowledge base,
+        // it never changes between queries, so doing it here instead turns
+        // Retrieve() from O(chunks × terms) per query into a handful of dot
+        // products against cached vectors.
+        foreach (var tf in _chunkTF)
+        {
+            var vec = TFIDF(tf);
+            _chunkTFIDF.Add(vec);
+            _chunkNorm.Add(Norm(vec));
+        }
+
         Debug.Log($"[RAGIndex] Built index: {_chunks.Count} chunks from {files.Length} files in '{knowledgeBaseFolder}'");
     }
 
@@ -88,12 +110,11 @@ public class RAGIndex
         if (qN <= 0d) return new List<Hit>();
 
         var results = new List<Hit>(_chunks.Count);
-        for (int i = 0; i < _chunkTF.Count; i++)
+        for (int i = 0; i < _chunkTFIDF.Count; i++)
         {
-            var cVec  = TFIDF(_chunkTF[i]);
-            double cN = Norm(cVec);
+            double cN = _chunkNorm[i];
             if (cN <= 0d) continue;
-            double sim = Dot(qVec, cVec) / (qN * cN);
+            double sim = Dot(qVec, _chunkTFIDF[i]) / (qN * cN);
             if (sim > 0d)
                 results.Add(new Hit { Chunk = _chunks[i], Score = (float)sim });
         }

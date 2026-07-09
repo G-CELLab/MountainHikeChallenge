@@ -17,8 +17,16 @@ public class CombinedLogger : MonoBehaviour
     [SerializeField] private bool logToConsole = false;
     [SerializeField] private bool logToCSV = true;
 
+    [Tooltip("How often the buffered rows are flushed to disk. Rows are still " +
+             "written to the writer every loggingInterval — this only controls " +
+             "how often that's forced out to the actual file, so a crash loses " +
+             "at most this many seconds of rows instead of nothing.")]
+    [SerializeField] private float flushInterval = 2f;
+
     private string csvFilePath;
+    private StreamWriter csvWriter;
     private float timeSinceLastLog = 0f;
+    private float timeSinceLastFlush = 0f;
     private float sessionStartTime;
 
     private void Start()
@@ -43,6 +51,37 @@ public class CombinedLogger : MonoBehaviour
             LogCombinedRow();
             timeSinceLastLog = 0f;
         }
+
+        if (csvWriter != null)
+        {
+            timeSinceLastFlush += Time.deltaTime;
+            if (timeSinceLastFlush >= flushInterval)
+            {
+                csvWriter.Flush();
+                timeSinceLastFlush = 0f;
+            }
+        }
+    }
+
+    private void OnDestroy()  => CloseWriter();
+    private void OnApplicationQuit() => CloseWriter();
+
+    private void CloseWriter()
+    {
+        if (csvWriter == null) return;
+        try
+        {
+            csvWriter.Flush();
+            csvWriter.Dispose();
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError("[CombinedLogger] Failed to close CSV writer: " + ex.Message);
+        }
+        finally
+        {
+            csvWriter = null;
+        }
     }
 
     private void LogCombinedRow()
@@ -51,10 +90,10 @@ public class CombinedLogger : MonoBehaviour
         long timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 
         AnatomyTutorSceneSnapshot scene = AnatomyTutorSession.Current;
-        string userSpeech = MainLogger.LastUserSpeech;
-        string aiSpeech = MainLogger.LastAISpeech;
-        string aiGesture = MainLogger.LastAIGesture;
-        string other = MainLogger.LastOther;
+        string userSpeech = AnatomyTutorSession.LastUserSpeech;
+        string aiSpeech = AnatomyTutorSession.LastTutorSpeech;
+        string aiGesture = AnatomyTutorSession.LastTutorGesture;
+        string other = AnatomyTutorSession.LastNote;
 
         if (logToConsole)
             Debug.Log($"[CombinedLog] T={elapsed:F2}s | TS={timestamp} | Scene:{scene.SceneId} | Phase:{scene.Phase}");
@@ -75,12 +114,10 @@ public class CombinedLogger : MonoBehaviour
 
             csvFilePath = Path.Combine(directory, "CombinedLog.csv");
 
-            using (StreamWriter writer = new StreamWriter(csvFilePath, false, new UTF8Encoding(true)))
-            {
-                writer.WriteLine(
-                    "Timestamp,Time(s),SceneId,Phase,SceneSummary,CurrentObjective,VisibleObjects,ProgressSummary," +
-                    "User_Speech,AI_Speech,AI_Gesture,Other");
-            }
+            csvWriter = new StreamWriter(csvFilePath, false, new UTF8Encoding(true)) { AutoFlush = false };
+            csvWriter.WriteLine(
+                "Timestamp,Time(s),SceneId,Phase,SceneSummary,CurrentObjective,VisibleObjects,ProgressSummary," +
+                "User_Speech,AI_Speech,AI_Gesture,Other");
         }
         catch (Exception ex)
         {
@@ -97,24 +134,23 @@ public class CombinedLogger : MonoBehaviour
         string aiGesture,
         string other)
     {
+        if (csvWriter == null) return;
+
         try
         {
-            using (StreamWriter writer = new StreamWriter(csvFilePath, true, new UTF8Encoding(true)))
-            {
-                writer.WriteLine(
-                    $"{timestamp}," +
-                    $"{elapsed:F3}," +
-                    $"{EscapeCsvField(scene.SceneId.ToString())}," +
-                    $"{EscapeCsvField(scene.Phase)}," +
-                    $"{EscapeCsvField(scene.SceneSummary)}," +
-                    $"{EscapeCsvField(scene.CurrentObjective)}," +
-                    $"{EscapeCsvField(scene.VisibleObjects)}," +
-                    $"{EscapeCsvField(scene.ProgressSummary)}," +
-                    $"{EscapeCsvField(userSpeech)}," +
-                    $"{EscapeCsvField(aiSpeech)}," +
-                    $"{EscapeCsvField(aiGesture)}," +
-                    $"{EscapeCsvField(other)}");
-            }
+            csvWriter.WriteLine(
+                $"{timestamp}," +
+                $"{elapsed:F3}," +
+                $"{EscapeCsvField(scene.SceneId.ToString())}," +
+                $"{EscapeCsvField(scene.Phase)}," +
+                $"{EscapeCsvField(scene.SceneSummary)}," +
+                $"{EscapeCsvField(scene.CurrentObjective)}," +
+                $"{EscapeCsvField(scene.VisibleObjects)}," +
+                $"{EscapeCsvField(scene.ProgressSummary)}," +
+                $"{EscapeCsvField(userSpeech)}," +
+                $"{EscapeCsvField(aiSpeech)}," +
+                $"{EscapeCsvField(aiGesture)}," +
+                $"{EscapeCsvField(other)}");
         }
         catch (Exception ex)
         {

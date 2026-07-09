@@ -10,6 +10,17 @@
 /// from cache instead of hitting the network. Any new scene added to
 /// AnatomySceneId should get a line here AND be added to that prefetch list.
 ///
+/// `Trailhead` doubles as the game's cinematic opening — it's the first line
+/// SceneNarrationController ever speaks (the flow entry for _MountainTrail at
+/// checkpoint 0 maps to AnatomySceneId.Trailhead), so it's where Carla
+/// introduces herself and the premise, not just where the Trailhead scene's
+/// own content lives. There's deliberately no separate "Intro" line anymore —
+/// one existed here previously but was never wired into the flow (no
+/// AnatomySceneId.Intro for SceneNarrationController to route to), so it sat
+/// in the prefetch cache and was never actually spoken. If you ever want a
+/// distinct intro separate from Trailhead's own content, it needs an actual
+/// AnatomySceneId + flow entry, not just a string here.
+///
 /// This is the single file to edit for all narration copy.
 /// No Unity dependencies, no logic — strings only.
 /// </summary>
@@ -17,14 +28,19 @@ public static class NarrationLines
 {
     // ── Scene introductions ──────────────────────────────────────────────────
 
-    public static readonly string Intro =
-        "Welcome to Mount Timpanogos. Today you will climb the trail and discover what your body is doing to keep you moving. " +
-        "Before your first step, the brain sends a signal down the spinal cord and the skeleton locks the joints into place. " +
-        "Trace the spine gesture with me, then look for the glowing neurons.";
-
     public static readonly string Trailhead =
-        "The trail is steep, but your nervous system is already working. Your brain sends the go signal, and your skeleton gives your muscles a stable frame to pull against. " +
-        "Now look at the glowing neurons and watch the signal move.";
+        "Hi — I'm Carla, and I'll be climbing this mountain with you. " +
+        "Welcome to Mount Timpanogos. What you're about to do here, we call the Summit Challenge: " +
+        "getting to the top while your own body does everything it takes to get you there. " +
+        "You're made of trillions of tiny cells, and right now, groups of those cells are teaming up as tissues, " +
+        "those tissues are built into organs, and those organs are organized into whole systems — " +
+        "all of them about to work together so you can make this climb. " +
+        "Here's the important part: I'm not just here to narrate. If you ever wonder what something is, or why " +
+        "your body is doing what it's doing, just ask me out loud, any time — I'm listening the whole way up, " +
+        "and I'll answer. " +
+        "Right now, before your very first step, your brain is already sending a signal down your spinal cord, " +
+        "and your skeleton is locking your joints into place so you don't stumble. " +
+        "Trace the spine gesture with me, then look for the glowing neurons — that's your nervous system saying 'go.'";
 
     public static readonly string Nervous =
         "Even before your first step, your brain sends an electrical signal down your spinal cord to your legs — think of it like a text message telling your muscles it's time to move. " +

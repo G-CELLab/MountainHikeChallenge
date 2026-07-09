@@ -36,9 +36,10 @@ using UnityEngine.Events;
 ///
 /// Logging:
 ///   Both EnqueueTTS() and the narration path call
-///   TextToSpeechPlayer.SetCurrentSpeech() with the text about to be spoken,
-///   so MainLogger's AI_Speech column captures every response and narration
-///   line (not just ones routed through TextToSpeechPlayer.Speak()).
+///   TextToSpeechPlayer.SetCurrentSpeech() and AnatomyTutorSession.RecordTutorSpeech()
+///   with the text about to be spoken, so CombinedLogger's AI_Speech column
+///   (which reads straight from AnatomyTutorSession) captures every response
+///   and narration line — not just ones routed through TextToSpeechPlayer.Speak().
 /// </summary>
 [RequireComponent(typeof(AIResponseGenerator))]
 [AddComponentMenu("AI/AI Tutor")]
@@ -51,7 +52,6 @@ public class AITutor : MonoBehaviour
     [SerializeField] private TTSAnimatorDriver      animatorDriver;
     [SerializeField] private OpenAISpeechRecognizer speechRecognizer;
     [SerializeField] private GestureSynchronizer    gestureSynchronizer;
-    [SerializeField] private NarrationLockController narrationLock;
 
     [Header("RAG Settings")]
     [Tooltip("Path relative to Assets folder. e.g. 'Scripts/AI/knowledge_base'")]
@@ -115,7 +115,6 @@ public class AITutor : MonoBehaviour
         if (animatorDriver      == null) animatorDriver      = FindAnyObjectByType<TTSAnimatorDriver>();
         if (speechRecognizer    == null) speechRecognizer    = FindAnyObjectByType<OpenAISpeechRecognizer>();
         if (gestureSynchronizer == null) gestureSynchronizer = FindAnyObjectByType<GestureSynchronizer>();
-        if (narrationLock       == null) narrationLock        = FindAnyObjectByType<NarrationLockController>();
 
         BuildRAGIndex();
         StartCoroutine(WarmUpOnStart());
@@ -271,8 +270,8 @@ public class AITutor : MonoBehaviour
         
         Debug.Log($"[AITutor] Transcript received: {transcript}");
         
-        // Log user speech before processing
-        MainLogger.LogUserSpeech(transcript);
+        // Record user speech before processing
+        AnatomyTutorSession.RecordUserSpeech(transcript);
         
         ProcessUserQuery(transcript);
     }
@@ -307,7 +306,6 @@ public class AITutor : MonoBehaviour
     {
         _isProcessing = true;
         _isNarrating  = true;
-        narrationLock?.Lock();
         _interrupted  = false;
         bool narrationCompleted = false;
 
@@ -315,7 +313,7 @@ public class AITutor : MonoBehaviour
         speechRecognizer?.NotifyTTSStarted();
 
         Debug.Log($"[AITutor] 📢 Narration: {text}");
-        MainLogger.LogAISpeech(text);
+        AnatomyTutorSession.RecordTutorSpeech(text);
 
         if (!_interrupted)
         {
@@ -346,7 +344,6 @@ public class AITutor : MonoBehaviour
         finally
         {
             _isNarrating      = false;
-            narrationLock?.Unlock();
             _isProcessing     = false;
             _ttsBusy          = false;
             _prefetchInFlight = 0;
@@ -496,7 +493,7 @@ public class AITutor : MonoBehaviour
         if (ttsPlayer != null)
         {
             TextToSpeechPlayer.SetCurrentSpeech(sentence);
-            MainLogger.LogAISpeech(sentence);
+            AnatomyTutorSession.RecordTutorSpeech(sentence);
         }
 
         int order = _enqueueOrder++;
@@ -637,7 +634,6 @@ public class AITutor : MonoBehaviour
     {
         string[] lines = new[]
         {
-            NarrationLines.Intro,
             NarrationLines.Trailhead,
             NarrationLines.Nervous,
             NarrationLines.Skeletal,

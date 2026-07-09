@@ -5,14 +5,23 @@ using UnityEngine.SceneManagement;
 /// Lives on the persistent AI agent GameObject (the one sitting in Bootstrap
 /// with DontDestroyOnLoad). Listens for every scene load — the first one from
 /// BootstrapLoader and every later one from SceneTransitionManager — and
-/// teleports the guide to that scene's AIGuideSpawnPoint.
+/// teleports the guide to the AIGuideSpawnPoint matching the current trail
+/// checkpoint, via the same CheckpointSpawnUtility lookup PlayerRigPositioner
+/// uses for the player rig. This is what keeps the guide standing next to the
+/// player on repeat visits to a scene (e.g. _MountainTrail at checkpoint 1)
+/// instead of both of them agreeing on "which visit is this" separately.
 ///
-/// If a scene has no spawn point, the guide just stays wherever she last was
-/// and a warning is logged, so a missing marker fails loudly instead of
-/// silently placing her somewhere wrong.
+/// If no spawn point matches the current checkpoint, the guide just stays
+/// wherever she last was and an error is logged (via CheckpointSpawnUtility),
+/// so a missing marker fails loudly instead of silently placing her somewhere
+/// wrong.
 /// </summary>
 public class AIGuidePositioner : MonoBehaviour
 {
+    [Header("Scenes Without a Spawn Point")]
+    [Tooltip("Scene names that intentionally have no AIGuideSpawnPoint (e.g. Bootstrap).")]
+    public string[] scenesWithoutSpawnPoint = { "_Bootstrap" };
+
     [Header("Optional")]
     [Tooltip("If the guide uses a NavMeshAgent, assign it here so we Warp() instead of moving the transform directly (avoids NavMesh desync).")]
     public UnityEngine.AI.NavMeshAgent navMeshAgent;
@@ -32,26 +41,29 @@ public class AIGuidePositioner : MonoBehaviour
 
     private void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        if (scene.name == "_Bootstrap")
+        if (System.Array.IndexOf(scenesWithoutSpawnPoint, scene.name) >= 0)
         {
             if (verbose)
                 Debug.Log($"[AIGuidePositioner] '{scene.name}' has no spawn point by design — skipping.");
             return;
         }
 
-        var spawnPoint = FindAnyObjectByType<AIGuideSpawnPoint>();
+        int checkpoint = MiniGameSequencer.Instance.TrailCheckpointIndex;
+
+        var spawnPoint = CheckpointSpawnUtility.FindExactMatch<AIGuideSpawnPoint>(
+            checkpoint, $"AI guide in '{scene.name}'");
 
         if (spawnPoint == null)
         {
-            if (verbose)
-                Debug.LogWarning($"[AIGuidePositioner] No AIGuideSpawnPoint found in scene '{scene.name}' — guide stayed at her previous position.");
+            // Error already logged by CheckpointSpawnUtility. Leave the guide
+            // where she was rather than guessing at a fallback position.
             return;
         }
 
         MoveTo(spawnPoint.transform.position, spawnPoint.transform.rotation);
 
         if (verbose)
-            Debug.Log($"[AIGuidePositioner] Moved guide to spawn point in '{scene.name}'.");
+            Debug.Log($"[AIGuidePositioner] Moved guide to checkpoint {checkpoint} spawn point in '{scene.name}'.");
     }
 
     private void MoveTo(Vector3 position, Quaternion rotation)

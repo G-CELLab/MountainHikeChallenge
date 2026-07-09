@@ -8,9 +8,14 @@ using UnityEngine;
 /// survives every scene load via DontDestroyOnLoad.
 ///
 /// Tracks:
-///   - which scenes have already played their narration this session
-///   - which mini-games have been completed (listens to MiniGameEvents.OnMiniGameComplete)
+///   - which (scene, checkpoint) narration steps have already played this session
 ///   - how many times the player has looped back to the mountain trail
+///
+/// Does NOT track which mini-games/systems are complete — that's GameManager's
+/// job (MarkSystemComplete/IsSystemComplete/OnSystemCompleted), since it's the
+/// same fact MiniGameSequencer used to track a second time from the same
+/// MiniGameEvents.OnMiniGameComplete event. If you need "is Circulatory done?",
+/// call GameManager.Instance.IsSystemComplete("Circulatory") instead.
 ///
 /// Access from anywhere via MiniGameSequencer.Instance.
 ///
@@ -47,13 +52,11 @@ public class MiniGameSequencer : MonoBehaviour
     [Header("Debug")]
     public bool verbose = true;
 
-    private readonly HashSet<string> _visitedScenes      = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-    private readonly HashSet<string> _completedMiniGames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _visitedScenes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
     public int TrailCheckpointIndex { get; private set; } = 0;
 
-    public event Action<int>   OnTrailCheckpointAdvanced;
-    public event Action<string> OnMiniGameMarkedComplete;
+    public event Action<int> OnTrailCheckpointAdvanced;
 
     private void Awake()
     {
@@ -68,24 +71,6 @@ public class MiniGameSequencer : MonoBehaviour
         DontDestroyOnLoad(gameObject);
     }
 
-    private void OnEnable()
-    {
-        MiniGameEvents.OnMiniGameComplete += HandleMiniGameComplete;
-    }
-
-    private void OnDisable()
-    {
-        MiniGameEvents.OnMiniGameComplete -= HandleMiniGameComplete;
-    }
-
-    private void HandleMiniGameComplete(string systemName)
-    {
-        if (string.IsNullOrEmpty(systemName)) return;
-        _completedMiniGames.Add(systemName);
-        if (verbose) Debug.Log($"[MiniGameSequencer] Mini-game complete: {systemName}");
-        OnMiniGameMarkedComplete?.Invoke(systemName);
-    }
-
     // ── Scene visit tracking ──────────────────────────────────────────────
 
     public bool HasVisited(string sceneName) =>
@@ -96,11 +81,6 @@ public class MiniGameSequencer : MonoBehaviour
         if (string.IsNullOrEmpty(sceneName)) return;
         _visitedScenes.Add(sceneName);
     }
-
-    // ── Mini-game completion ──────────────────────────────────────────────
-
-    public bool IsMiniGameComplete(string systemName) =>
-        !string.IsNullOrEmpty(systemName) && _completedMiniGames.Contains(systemName);
 
     // ── Trail checkpoint ──────────────────────────────────────────────────
 
@@ -118,8 +98,8 @@ public class MiniGameSequencer : MonoBehaviour
     public void ResetAll()
     {
         _visitedScenes.Clear();
-        _completedMiniGames.Clear();
         TrailCheckpointIndex = 0;
-        if (verbose) Debug.Log("[MiniGameSequencer] Reset.");
+        if (verbose) Debug.Log("[MiniGameSequencer] Reset — call GameManager.Instance.ResetProgress() " +
+                                "separately if you also want completed systems cleared.");
     }
 }

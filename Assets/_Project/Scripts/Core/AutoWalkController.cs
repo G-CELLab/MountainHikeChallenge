@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -19,12 +20,36 @@ using UnityEngine.Events;
 /// segment (e.g. the easy walk before the incline, or the final stretch to
 /// the summit).
 ///
+/// Path selection — for scenes visited at ONLY one checkpoint (Circulatory,
+/// Respiratory, Digestive, Summit), just fill in `waypoints` and ignore
+/// `checkpointPaths` entirely; that's the whole setup.
+///
+/// For a scene like _MountainTrail that's revisited at several trail
+/// checkpoints (each landing the player further up the mountain, per
+/// PlayerSpawnPoint/PlayerEndPoint's own checkpoint numbering), add one
+/// `checkpointPaths` entry per checkpoint instead: its own ordered chain of
+/// intermediate waypoints ending with that checkpoint's own PlayerEndPoint
+/// dragged in as the last element. BeginAutoWalk() picks whichever chain
+/// matches MiniGameSequencer.Instance.TrailCheckpointIndex at the moment
+/// it's called; `waypoints` is only used as a fallback if no entry matches.
+///
 /// Reports overall progress (0-1 across the whole waypoint chain) to
 /// GameManager as it walks, so the HUD progress bar moves smoothly instead
 /// of jumping at scene boundaries.
 /// </summary>
 public class AutoWalkController : MonoBehaviour
 {
+    [System.Serializable]
+    public class CheckpointPath
+    {
+        [Tooltip("Which MiniGameSequencer.TrailCheckpointIndex this path is for.")]
+        public int checkpointIndex;
+
+        [Tooltip("Ordered waypoints for this checkpoint's segment. Drag that checkpoint's own " +
+                 "PlayerEndPoint in as the LAST element, same as the single-path case below.")]
+        public Transform[] waypoints;
+    }
+
     [Header("References")]
     [Tooltip("The XR rig root (XR Origin or equivalent) that should move. " +
              "Leave empty — the rig lives in the persistent _Bootstrap scene, so it " +
@@ -34,11 +59,31 @@ public class AutoWalkController : MonoBehaviour
     public Transform rigToMove;
 
     [Header("Path")]
-    [Tooltip("Ordered waypoints. Y is ignored for movement/arrival checks — assumes terrain height is handled separately (e.g. CharacterController + gravity).")]
+    [Tooltip("One entry per trail checkpoint, for scenes revisited at several checkpoints " +
+             "(e.g. _MountainTrail). Leave empty if this scene only ever walks one segment — " +
+             "'Waypoints' below covers that case on its own.")]
+    public List<CheckpointPath> checkpointPaths = new List<CheckpointPath>();
+
+    [Tooltip("Fallback path used when no entry in Checkpoint Paths matches the current checkpoint " +
+             "(or when Checkpoint Paths is left empty entirely — the common case for scenes with " +
+             "only one walk segment). Horizontal direction only — see Ground Following below for " +
+             "how height/slopes are handled.")]
     public Transform[] waypoints;
     public float moveSpeed = 1.5f;
     public float rotationSpeed = 4f;
     public float arrivalThreshold = 0.15f;
+
+    [Header("Ground Following")]
+    [Tooltip("XR Origin's CharacterController, auto-resolved from rigToMove if left empty. " +
+             "Movement is sent through CharacterController.Move() rather than set directly on the " +
+             "Transform, so Unity's own capsule-vs-terrain collision sweep is what follows the slope " +
+             "— the same mechanism that handles it for normal player movement. No raycasting involved.")]
+    public CharacterController characterController;
+
+    [Tooltip("Small constant downward speed fed into every Move() call so the capsule stays pressed " +
+             "against the ground (including on a downhill slope, where horizontal motion alone would " +
+             "drift the rig above the surface). Not real gravity/falling — just enough to keep contact.")]
+    public float groundedPushSpeed = 2f;
 
     [Header("Mountain Progress Reporting")]
     [Tooltip("If set, walking this path updates GameManager's mountain progress across this sub-range (e.g. 0.0-0.4 for the first trail segment).")]
@@ -58,6 +103,7 @@ public class AutoWalkController : MonoBehaviour
 
     private Coroutine _walkRoutine;
     private float _totalPathLength;
+    private Transform[] _activeWaypoints;
 
     // ── Public API ────────────────────────────────────────────────────────────
 
@@ -65,7 +111,9 @@ public class AutoWalkController : MonoBehaviour
     {
         ResolveRigIfNeeded();
 
-        if (rigToMove == null || waypoints == null || waypoints.Length == 0)
+        _activeWaypoints = ResolveActiveWaypoints();
+
+        if (rigToMove == null || _activeWaypoints == null || _activeWaypoints.Length == 0)
         {
             Debug.LogWarning("[AutoWalkController] Missing rig or waypoints — cannot start auto-walk.");
             return;
@@ -81,6 +129,38 @@ public class AutoWalkController : MonoBehaviour
         IsWalking = false;
     }
 
+    // ── Path resolution ───────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Picks the waypoint chain for the current trail checkpoint. Falls back
+    /// to the flat `waypoints` field if checkpointPaths is empty or has no
+    /// entry for the current checkpoint — this is what keeps single-segment
+    /// scenes (Circulatory, Respiratory, Digestive, Summit) simple: they never
+    /// need to touch checkpointPaths at all.
+    /// </summary>
+    private Transform[] ResolveActiveWaypoints()
+    {
+        int checkpoint = MiniGameSequencer.Instance.TrailCheckpointIndex;
+
+        foreach (var path in checkpointPaths)
+        {
+            if (path.checkpointIndex == checkpoint)
+            {
+                if (path.waypoints == null || path.waypoints.Length == 0)
+                {
+                    Debug.LogWarning($"[AutoWalkController] Checkpoint Paths entry for checkpoint " +
+                                      $"{checkpoint} has no waypoints assigned — falling back to Waypoints.");
+                    break;
+                }
+                if (verbose)
+                    Debug.Log($"[AutoWalkController] Using Checkpoint Paths entry for checkpoint {checkpoint}.");
+                return path.waypoints;
+            }
+        }
+
+        return waypoints;
+    }
+
     // ── Rig resolution ────────────────────────────────────────────────────────
 
     /// <summary>
@@ -92,18 +172,31 @@ public class AutoWalkController : MonoBehaviour
     /// </summary>
     private void ResolveRigIfNeeded()
     {
-        if (rigToMove != null) return;
-
-        var positioner = FindAnyObjectByType<PlayerRigPositioner>();
-        if (positioner != null && positioner.rigTransform != null)
+        if (rigToMove == null)
         {
-            rigToMove = positioner.rigTransform;
-            if (verbose) Debug.Log("[AutoWalkController] Resolved rigToMove from PlayerRigPositioner.");
+            var positioner = FindAnyObjectByType<PlayerRigPositioner>();
+            if (positioner != null && positioner.rigTransform != null)
+            {
+                rigToMove = positioner.rigTransform;
+                if (verbose) Debug.Log("[AutoWalkController] Resolved rigToMove from PlayerRigPositioner.");
+            }
+            else if (verbose)
+            {
+                Debug.LogWarning("[AutoWalkController] Could not resolve rigToMove — no PlayerRigPositioner " +
+                                  "found, or its rigTransform is unassigned.");
+            }
         }
-        else if (verbose)
+
+        if (characterController == null && rigToMove != null)
         {
-            Debug.LogWarning("[AutoWalkController] Could not resolve rigToMove — no PlayerRigPositioner " +
-                              "found, or its rigTransform is unassigned.");
+            characterController = rigToMove.GetComponent<CharacterController>();
+            if (characterController == null && verbose)
+            {
+                Debug.LogWarning("[AutoWalkController] No CharacterController found on rigToMove — " +
+                                  "falling back to setting Transform.position directly, which won't " +
+                                  "follow slopes. Add a CharacterController to the XR Origin for proper " +
+                                  "terrain-following movement.");
+            }
         }
     }
 
@@ -118,9 +211,9 @@ public class AutoWalkController : MonoBehaviour
         _totalPathLength = ComputeTotalPathLength();
         float distanceCovered = 0f;
 
-        for (int i = 0; i < waypoints.Length; i++)
+        for (int i = 0; i < _activeWaypoints.Length; i++)
         {
-            Transform target = waypoints[i];
+            Transform target = _activeWaypoints[i];
 
             while (FlatDistance(rigToMove.position, target.position) > arrivalThreshold)
             {
@@ -133,7 +226,25 @@ public class AutoWalkController : MonoBehaviour
                 }
 
                 float step = moveSpeed * Time.deltaTime;
-                rigToMove.position += direction * step;
+                Vector3 motion = direction * step;
+
+                if (characterController != null && characterController.enabled)
+                {
+                    // CharacterController.Move() sweeps the capsule against the terrain
+                    // collider itself and slides along whatever slope it hits — the small
+                    // constant downward component keeps the capsule pressed against the
+                    // ground (including on downhill stretches) so it doesn't hover.
+                    motion.y = -groundedPushSpeed * Time.deltaTime;
+                    characterController.Move(motion);
+                }
+                else
+                {
+                    // No CharacterController to sweep collision for us — best we can do is
+                    // move on the flat plane and leave height alone. Fine for flat ground,
+                    // not for a slope; the warning in ResolveRigIfNeeded already flags this.
+                    rigToMove.position += motion;
+                }
+
                 distanceCovered += step;
 
                 if (reportProgressToGameManager && GameManager.Instance != null && _totalPathLength > 0f)
@@ -162,11 +273,11 @@ public class AutoWalkController : MonoBehaviour
 
     private float ComputeTotalPathLength()
     {
-        if (waypoints.Length == 0) return 0f;
+        if (_activeWaypoints.Length == 0) return 0f;
 
-        float length = FlatDistance(rigToMove.position, waypoints[0].position);
-        for (int i = 0; i < waypoints.Length - 1; i++)
-            length += FlatDistance(waypoints[i].position, waypoints[i + 1].position);
+        float length = FlatDistance(rigToMove.position, _activeWaypoints[0].position);
+        for (int i = 0; i < _activeWaypoints.Length - 1; i++)
+            length += FlatDistance(_activeWaypoints[i].position, _activeWaypoints[i + 1].position);
 
         return length;
     }
@@ -188,15 +299,27 @@ public class AutoWalkController : MonoBehaviour
 #if UNITY_EDITOR
     private void OnDrawGizmos()
     {
-        if (waypoints == null || waypoints.Length == 0) return;
+        DrawChain(waypoints, Color.cyan);
 
-        Gizmos.color = Color.cyan;
-        for (int i = 0; i < waypoints.Length; i++)
+        if (checkpointPaths != null)
         {
-            if (waypoints[i] == null) continue;
-            Gizmos.DrawSphere(waypoints[i].position, 0.2f);
-            if (i > 0 && waypoints[i - 1] != null)
-                Gizmos.DrawLine(waypoints[i - 1].position, waypoints[i].position);
+            Gizmos.color = Color.magenta;
+            foreach (var path in checkpointPaths)
+                DrawChain(path.waypoints, Color.magenta);
+        }
+    }
+
+    private static void DrawChain(Transform[] chain, Color color)
+    {
+        if (chain == null || chain.Length == 0) return;
+
+        Gizmos.color = color;
+        for (int i = 0; i < chain.Length; i++)
+        {
+            if (chain[i] == null) continue;
+            Gizmos.DrawSphere(chain[i].position, 0.2f);
+            if (i > 0 && chain[i - 1] != null)
+                Gizmos.DrawLine(chain[i - 1].position, chain[i].position);
         }
     }
 #endif

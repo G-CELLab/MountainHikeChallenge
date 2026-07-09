@@ -16,6 +16,12 @@ public static class CheckpointSpawnUtility
 {
     public static T FindExactMatch<T>(int checkpoint, string contextLabel) where T : MonoBehaviour, ICheckpointSpawnPoint
     {
+        // Sort order doesn't matter here — we're scanning for an exact
+        // checkpoint match, not relying on array order — so use the cheaper
+        // unsorted mode rather than paying for a sort we don't need.
+        // Use the non-obsolete overload. We don't need any specific sort order
+        // or inactive-object behavior here, so the parameterless overload is
+        // appropriate.
         T[] all = Object.FindObjectsByType<T>();
 
         if (all.Length == 0)

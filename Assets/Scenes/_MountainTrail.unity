@@ -713,11 +713,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AutoWalkController
   rigToMove: {fileID: 0}
+  checkpointPaths:
+  - checkpointIndex: 0
+    waypoints:
+    - {fileID: 1061970528}
+  - checkpointIndex: 1
+    waypoints:
+    - {fileID: 606587573}
   waypoints:
-  - {fileID: 1467396041}
-  moveSpeed: 1.5
+  - {fileID: 0}
+  moveSpeed: 1
   rotationSpeed: 4
   arrivalThreshold: 0.15
+  characterController: {fileID: 0}
+  groundedPushSpeed: 2
   reportProgressToGameManager: 1
   progressRangeStart: 0
   progressRangeEnd: 1
@@ -1151,7 +1160,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6505984101890133316, guid: 7694971ab3a4c884aa2cd3b060feffc1, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 55.092
+      value: 55.397
       objectReference: {fileID: 0}
     - target: {fileID: 6505984101890133316, guid: 7694971ab3a4c884aa2cd3b060feffc1, type: 3}
       propertyPath: m_LocalPosition.z
@@ -1643,7 +1652,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7974103311592148773, guid: 4afe71e8e0366e645a2c94d8c5ad425e, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0
+      value: 0.425
       objectReference: {fileID: 0}
     - target: {fileID: 7974103311592148773, guid: 4afe71e8e0366e645a2c94d8c5ad425e, type: 3}
       propertyPath: m_LocalPosition.z

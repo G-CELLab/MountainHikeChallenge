@@ -40,16 +40,20 @@ public class GameManager : MonoBehaviour
     [Header("Debug")]
     public bool verbose = true;
 
-    // ── Canonical scene order — mirrors AnatomySceneId and the recommended ──
-    // ── prototype scene order from scene_design.md                        ──
+    // ── Canonical scene order ─────────────────────────────────────────────
+    // Derived directly from the AnatomySceneId enum's declaration order
+    // instead of a second, hand-maintained list. The enum is already declared
+    // in the intended narrative order (Trailhead → Nervous → Skeletal →
+    // SteepIncline → Circulatory → Respiratory → Digestive → Summit), and
+    // keeping only one copy of that order means adding a new scene to the
+    // enum can never silently leave GetNextScene()/HUD highlighting out of
+    // sync again, the way the old hard-coded list did.
+    //
+    // If the intended flow ever needs to reorder scenes without reordering
+    // the enum itself, replace this with an explicit list again — just keep
+    // it as the ONLY list, not a second one that can drift.
     public static readonly AnatomySceneId[] SceneOrder =
-    {
-        AnatomySceneId.Trailhead,
-        AnatomySceneId.Circulatory,
-        AnatomySceneId.Respiratory,
-        AnatomySceneId.Digestive,
-        AnatomySceneId.Summit
-    };
+        (AnatomySceneId[])Enum.GetValues(typeof(AnatomySceneId));
 
     // ── State ─────────────────────────────────────────────────────────────────
 
@@ -125,6 +129,15 @@ public class GameManager : MonoBehaviour
 
     public bool IsSystemComplete(BodySystem system) => _completedSystems.Contains(system);
 
+    /// <summary>
+    /// String overload for callers that only have a system name on hand (e.g.
+    /// MiniGameSequencer, mini-game scripts checking "is Circulatory done?").
+    /// GameManager is the single owner of completed-system state — nothing else
+    /// should keep its own copy of this set.
+    /// </summary>
+    public bool IsSystemComplete(string systemName) =>
+        Enum.TryParse(systemName, ignoreCase: true, out BodySystem system) && IsSystemComplete(system);
+
     // ── Public API — mountain progress ───────────────────────────────────────
 
     public void SetMountainProgress(float progress01)
@@ -166,13 +179,17 @@ public class GameManager : MonoBehaviour
 
     /// <summary>
     /// Maps a scene to the body system(s) it primarily teaches, for HUD highlighting.
-    /// Trailhead teaches two systems at once (Nervous + Skeletal) per the design doc.
+    /// Nervous and Skeletal now have their own dedicated scenes (split out of the
+    /// combined Trailhead intro), so each highlights just its own system; Trailhead
+    /// itself and SteepIncline are narrative/transition beats that don't own a
+    /// specific system indicator.
     /// </summary>
     public static IEnumerable<BodySystem> SystemsForScene(AnatomySceneId scene)
     {
         switch (scene)
         {
-            case AnatomySceneId.Trailhead:   return new[] { BodySystem.Nervous, BodySystem.Skeletal };
+            case AnatomySceneId.Nervous:     return new[] { BodySystem.Nervous };
+            case AnatomySceneId.Skeletal:    return new[] { BodySystem.Skeletal };
             case AnatomySceneId.Circulatory: return new[] { BodySystem.Circulatory };
             case AnatomySceneId.Respiratory: return new[] { BodySystem.Respiratory };
             case AnatomySceneId.Digestive:   return new[] { BodySystem.Digestive };
