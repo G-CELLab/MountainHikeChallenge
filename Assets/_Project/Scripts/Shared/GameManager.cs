@@ -43,9 +43,13 @@ public class GameManager : MonoBehaviour
     // ── Canonical scene order ─────────────────────────────────────────────
     // Derived directly from the AnatomySceneId enum's declaration order
     // instead of a second, hand-maintained list. The enum is already declared
-    // in the intended narrative order (Trailhead → Nervous → Skeletal →
-    // SteepIncline → Circulatory → Respiratory → Digestive → Summit), and
-    // keeping only one copy of that order means adding a new scene to the
+    // in the intended narrative order:
+    //
+    //   Trailhead → Nervous → Skeletal → SteepIncline → Muscular →
+    //   Circulatory → ThinAir → Respiratory → EnergyCrash → Digestive →
+    //   Summit → Homeostasis → Completion
+    //
+    // Keeping only one copy of that order means adding a new scene to the
     // enum can never silently leave GetNextScene()/HUD highlighting out of
     // sync again, the way the old hard-coded list did.
     //
@@ -101,7 +105,10 @@ public class GameManager : MonoBehaviour
     /// <summary>
     /// Mini-game scripts already call MiniGameEvents.TriggerMiniGameComplete("Circulatory")
     /// etc. per the shared contract — GameManager listens for that instead of every
-    /// interaction script needing a direct reference to GameManager.
+    /// interaction script needing a direct reference to GameManager. Homeostasis uses
+    /// the same contract (TriggerMiniGameComplete("Homeostasis")) even though it isn't
+    /// a hands-on mini-game — whatever marks the Homeostasis scene's beat as finished
+    /// (e.g. a timeline or the guide's closing line) should fire that event.
     /// </summary>
     private void HandleMiniGameComplete(string systemName)
     {
@@ -179,10 +186,10 @@ public class GameManager : MonoBehaviour
 
     /// <summary>
     /// Maps a scene to the body system(s) it primarily teaches, for HUD highlighting.
-    /// Nervous and Skeletal now have their own dedicated scenes (split out of the
-    /// combined Trailhead intro), so each highlights just its own system; Trailhead
-    /// itself and SteepIncline are narrative/transition beats that don't own a
-    /// specific system indicator.
+    /// Trailhead, SteepIncline, ThinAir, EnergyCrash, Summit, and Completion are all
+    /// narrative/transition beats in _MountainTrail that don't own a specific system
+    /// indicator — everything else maps 1:1 to its own BodySystem entry, including
+    /// Muscular and Homeostasis now that both have dedicated scenes.
     /// </summary>
     public static IEnumerable<BodySystem> SystemsForScene(AnatomySceneId scene)
     {
@@ -190,9 +197,11 @@ public class GameManager : MonoBehaviour
         {
             case AnatomySceneId.Nervous:     return new[] { BodySystem.Nervous };
             case AnatomySceneId.Skeletal:    return new[] { BodySystem.Skeletal };
+            case AnatomySceneId.Muscular:    return new[] { BodySystem.Muscular };
             case AnatomySceneId.Circulatory: return new[] { BodySystem.Circulatory };
             case AnatomySceneId.Respiratory: return new[] { BodySystem.Respiratory };
             case AnatomySceneId.Digestive:   return new[] { BodySystem.Digestive };
+            case AnatomySceneId.Homeostasis: return new[] { BodySystem.Homeostasis };
             default:                         return Array.Empty<BodySystem>();
         }
     }

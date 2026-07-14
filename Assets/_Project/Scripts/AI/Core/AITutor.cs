@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Text.RegularExpressions;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -33,6 +34,15 @@ using UnityEngine.Events;
 ///   OnNarrationCompleted fires once a narration line finishes playing
 ///   (not fired if interrupted) — SceneNarrationController listens to this
 ///   to know when it's safe to transition to the next scene.
+///
+///   Narration text is split into sentences (SplitIntoSentences) and each
+///   sentence is enqueued/cached individually — same per-sentence pipeline
+///   query responses already use. Two reasons: (1) the first sentence can
+///   start playing as soon as ITS clip is ready instead of waiting for the
+///   entire paragraph to synthesize as one long clip, and (2) no individual
+///   clip is ever long enough to trip DrainTTSQueue's playback timeout, which
+///   previously caused long narration lines to be cut off mid-sentence and
+///   the next scene's narration to start over them.
 ///
 /// Logging:
 ///   Both EnqueueTTS() and the narration path call
@@ -68,6 +78,13 @@ public class AITutor : MonoBehaviour
     [Tooltip("How long to wait for the interrupted coroutine to release the gate before forcing a new query (seconds)")]
     [SerializeField] private float interruptTimeoutSec = 1.5f;
 
+    [Header("Playback Safety")]
+    [Tooltip("Extra seconds of headroom added on top of a clip's own length before DrainTTSQueue " +
+             "gives up waiting on it. The timeout is now based on each clip's actual length (since " +
+             "narration is split into per-sentence clips), not a single fixed value — this buffer just " +
+             "covers normal network/decode jitter, not a hard ceiling for long clips.")]
+    [SerializeField] private float playbackTimeoutBufferSec = 5f;
+
     [Header("Events")]
     public UnityEvent<string> OnResponseStarted    = new UnityEvent<string>();
     public UnityEvent<string> OnResponseCompleted  = new UnityEvent<string>();
@@ -79,6 +96,7 @@ public class AITutor : MonoBehaviour
     private AIResponseGenerator _generator;
     private RAGIndex            _ragIndex;
 
+    // Keyed per-sentence now, not per full narration line — see SplitIntoSentences.
     private readonly Dictionary<string, AudioClip> _narrationCache = new Dictionary<string, AudioClip>();
 
     private bool  _isProcessing   = false;
@@ -95,6 +113,9 @@ public class AITutor : MonoBehaviour
         = new SortedDictionary<int, AudioClip>();
 
     private static bool _persisted = false;
+
+    private static readonly Regex SentenceSplitRegex =
+        new Regex(@"(?<=[.!?])\s+", RegexOptions.Compiled);
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
 
@@ -366,9 +387,23 @@ public class AITutor : MonoBehaviour
             OnNarrationCompleted.Invoke(text);
     }
 
+    /// <summary>
+    /// Splits a narration line into individual sentences and enqueues each
+    /// through the same per-sentence pipeline query responses use. This is
+    /// what lets the first sentence start playing almost immediately instead
+    /// of waiting on the entire paragraph to synthesize as one long clip, and
+    /// keeps every individual clip short enough that DrainTTSQueue's playback
+    /// timeout never has a reason to cut one off mid-sentence.
+    /// </summary>
     private void EnqueueTTSNarration(string text)
     {
-        if (_narrationCache.TryGetValue(text, out AudioClip cached))
+        foreach (string sentence in SplitIntoSentences(text))
+            EnqueueNarrationSentence(sentence);
+    }
+
+    private void EnqueueNarrationSentence(string sentence)
+    {
+        if (_narrationCache.TryGetValue(sentence, out AudioClip cached))
         {
             // Play immediately from cache — no network wait
             int order = _enqueueOrder++;
@@ -381,9 +416,29 @@ public class AITutor : MonoBehaviour
         }
         else
         {
-            // Fallback to normal fetch if not cached yet
-            EnqueueTTS(text);
+            // Fallback to normal fetch if not cached yet — same ordered-queue
+            // path a live query response sentence uses.
+            EnqueueTTS(sentence);
         }
+    }
+
+    /// <summary>
+    /// Splits on sentence-ending punctuation (. ! ?) followed by whitespace,
+    /// keeping the punctuation attached to each sentence. Empty/whitespace-only
+    /// fragments are dropped.
+    /// </summary>
+    private static string[] SplitIntoSentences(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return Array.Empty<string>();
+
+        string[] parts = SentenceSplitRegex.Split(text.Trim());
+        var result = new List<string>(parts.Length);
+        foreach (string part in parts)
+        {
+            if (!string.IsNullOrWhiteSpace(part))
+                result.Add(part.Trim());
+        }
+        return result.ToArray();
     }
 
     // ── Query coroutine ───────────────────────────────────────────────────────
@@ -562,6 +617,13 @@ public class AITutor : MonoBehaviour
                 playDone = true;
             }
 
+            // Timeout now scales with the clip's own length (plus a small jitter
+            // buffer) instead of a fixed 40s ceiling. A fixed ceiling was shorter
+            // than some real narration clips, causing DrainTTSQueue to give up on
+            // a clip that was still legitimately playing, release the narration
+            // gate early, and let the next scene's narration start over it.
+            float maxPlayTime = (clip != null ? clip.length : 5f) + playbackTimeoutBufferSec;
+
             float playStart = Time.realtimeSinceStartup;
             while (!playDone)
             {
@@ -576,9 +638,9 @@ public class AITutor : MonoBehaviour
                     if (elapsed > 0.3f && remaining < 0.15f) break;
                 }
 
-                if (Time.realtimeSinceStartup - playStart > 40f)
+                if (Time.realtimeSinceStartup - playStart > maxPlayTime)
                 {
-                    Debug.LogWarning("[AITutor] Playback timed out (40s).");
+                    Debug.LogWarning($"[AITutor] Playback timed out ({maxPlayTime:F1}s).");
                     break;
                 }
                 yield return null;
@@ -630,6 +692,12 @@ public class AITutor : MonoBehaviour
         yield return _generator.WarmUp();
     }
 
+    /// <summary>
+    /// Prefetches every scene's narration ahead of time, one SENTENCE at a
+    /// time rather than one full paragraph at a time. Trailhead is fetched
+    /// first since it's the first thing the player actually hears — no point
+    /// racing the network with a scene that plays live moments after boot.
+    /// </summary>
     private IEnumerator PrefetchAllNarrations()
     {
         string[] lines = new[]
@@ -647,10 +715,15 @@ public class AITutor : MonoBehaviour
 
         foreach (string line in lines)
         {
-            yield return ttsPlayer.FetchAudioClip(line, clip =>
+            foreach (string sentence in SplitIntoSentences(line))
             {
-                if (clip != null) _narrationCache[line] = clip;
-            });
+                if (_narrationCache.ContainsKey(sentence)) continue;
+
+                yield return ttsPlayer.FetchAudioClip(sentence, clip =>
+                {
+                    if (clip != null) _narrationCache[sentence] = clip;
+                });
+            }
             Debug.Log($"[AITutor] Prefetched narration: {line.Substring(0, Mathf.Min(40, line.Length))}...");
         }
 

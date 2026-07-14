@@ -18,7 +18,9 @@ using UnityEngine.Events;
 /// Call BeginAutoWalk() from a trigger volume, a button, or
 /// SceneTransitionManager to walk the student hands-off through a trail
 /// segment (e.g. the easy walk before the incline, or the final stretch to
-/// the summit).
+/// the summit). If startDelaySeconds is set, the rig waits that long after
+/// BeginAutoWalk() is called before actually moving — useful for letting a
+/// scene/guide intro or narration beat finish before the walk kicks off.
 ///
 /// Path selection — for scenes visited at ONLY one checkpoint (Circulatory,
 /// Respiratory, Digestive, Summit), just fill in `waypoints` and ignore
@@ -57,6 +59,12 @@ public class AutoWalkController : MonoBehaviour
              "from PlayerRigPositioner.rigTransform instead. Only fill this in manually " +
              "if you're testing this scene in isolation with a local rig stand-in.")]
     public Transform rigToMove;
+
+    [Header("Start Delay")]
+    [Tooltip("Seconds to wait after BeginAutoWalk() is called before the rig actually starts " +
+             "moving. Lets a scene intro, guide spawn animation, or narration beat finish first. " +
+             "0 = start immediately, same as before.")]
+    public float startDelaySeconds = 0f;
 
     [Header("Path")]
     [Tooltip("One entry per trail checkpoint, for scenes revisited at several checkpoints " +
@@ -120,13 +128,32 @@ public class AutoWalkController : MonoBehaviour
         }
 
         if (_walkRoutine != null) StopCoroutine(_walkRoutine);
-        _walkRoutine = StartCoroutine(WalkRoutine());
+        _walkRoutine = StartCoroutine(DelayedWalkRoutine());
     }
 
     public void StopAutoWalk()
     {
         if (_walkRoutine != null) StopCoroutine(_walkRoutine);
         IsWalking = false;
+    }
+
+    // ── Start delay wrapper ───────────────────────────────────────────────────
+
+    /// <summary>
+    /// Waits startDelaySeconds (if any) before handing off to the real
+    /// WalkRoutine(). Kept as a thin wrapper so WalkRoutine() itself stays
+    /// focused purely on movement — the delay is a separate concern.
+    /// </summary>
+    private IEnumerator DelayedWalkRoutine()
+    {
+        if (startDelaySeconds > 0f)
+        {
+            if (verbose)
+                Debug.Log($"[AutoWalkController] Waiting {startDelaySeconds:F1}s before starting walk.");
+            yield return new WaitForSecondsRealtime(startDelaySeconds);
+        }
+
+        yield return WalkRoutine();
     }
 
     // ── Path resolution ───────────────────────────────────────────────────────

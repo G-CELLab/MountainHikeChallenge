@@ -6,6 +6,21 @@ using System;
 /// narrator scripts and the AI response pipeline read from
 /// AnatomyTutorSession.Current directly. There is no separate "refresh"
 /// step needed since this class is always live.
+///
+/// Declared in full narrative order — GameManager.SceneOrder derives its
+/// order directly from this enum's declaration, so this IS the canonical
+/// flow, not just documentation of it:
+///
+///   Trailhead → Nervous → Skeletal → SteepIncline → Muscular → Circulatory
+///   → ThinAir → Respiratory → EnergyCrash → Digestive → Summit
+///   → Homeostasis → Completion
+///
+/// Trailhead, SteepIncline, ThinAir, EnergyCrash, Summit, and Completion are
+/// narrative/transition beats that all live in the SAME Unity scene
+/// (_MountainTrail) at different trail checkpoints — see
+/// SceneNarrationController's flow list, keyed by (scene name, checkpoint).
+/// Nervous, Skeletal, Muscular, Circulatory, Respiratory, Digestive, and
+/// Homeostasis each get their own dedicated Unity scene.
 /// </summary>
 public enum AnatomySceneId
 {
@@ -13,10 +28,15 @@ public enum AnatomySceneId
     Nervous,
     Skeletal,
     SteepIncline,
+    Muscular,
     Circulatory,
+    ThinAir,
     Respiratory,
+    EnergyCrash,
     Digestive,
-    Summit
+    Summit,
+    Homeostasis,
+    Completion
 }
 
 [Serializable]
@@ -188,6 +208,17 @@ public static class AnatomyTutorSession
                         ? "Steep incline reached. The body is working harder than before."
                         : progressSummary);
 
+            case AnatomySceneId.Muscular:
+                return new AnatomyTutorSceneSnapshot(
+                    sceneId,
+                    "muscular",
+                    "The student is inside the leg, looking at muscle fibers contracting to power each stride up the incline.",
+                    "Pull the muscle fibers to contract them and drive the leg forward against the steeper slope.",
+                    "Muscle fiber bundles, tendons anchoring to bone, and the guide gesturing toward a contracting fiber.",
+                    string.IsNullOrWhiteSpace(progressSummary)
+                        ? "Muscular scene ready. The legs are working to power the climb."
+                        : progressSummary);
+
             case AnatomySceneId.Circulatory:
                 return new AnatomyTutorSceneSnapshot(
                     sceneId,
@@ -199,6 +230,17 @@ public static class AnatomyTutorSession
                         ? "Circulatory scene ready. The heart is responding to the climb."
                         : progressSummary);
 
+            case AnatomySceneId.ThinAir:
+                return new AnatomyTutorSceneSnapshot(
+                    sceneId,
+                    "thin_air",
+                    "The student is back on the mountain trail, higher up where the air is noticeably thinner.",
+                    "Notice the faster breathing as the body works harder to pull in the same amount of oxygen.",
+                    "The higher, thinner trail, visible breath in the cold air, and the guide commenting on the altitude.",
+                    string.IsNullOrWhiteSpace(progressSummary)
+                        ? "Thin air reached. Breathing is picking up to keep pace with the climb."
+                        : progressSummary);
+
             case AnatomySceneId.Respiratory:
                 return new AnatomyTutorSceneSnapshot(
                     sceneId,
@@ -208,6 +250,17 @@ public static class AnatomyTutorSession
                     "Diaphragm dome, alveoli clusters, oxygen particles, carbon dioxide particles, and blood vessels.",
                     string.IsNullOrWhiteSpace(progressSummary)
                         ? "Respiratory scene ready. The lungs are helping the climb."
+                        : progressSummary);
+
+            case AnatomySceneId.EnergyCrash:
+                return new AnatomyTutorSceneSnapshot(
+                    sceneId,
+                    "energy_crash",
+                    "The student is back on the mountain trail, and the body is running low on fuel after the sustained climb.",
+                    "Notice the sudden fatigue — that's blood sugar dropping and the body signaling it needs more fuel.",
+                    "The trail with visible fatigue cues, and the guide pointing out the need to refuel.",
+                    string.IsNullOrWhiteSpace(progressSummary)
+                        ? "Energy crash hit. The body needs fuel to keep climbing."
                         : progressSummary);
 
             case AnatomySceneId.Digestive:
@@ -222,15 +275,37 @@ public static class AnatomyTutorSession
                         : progressSummary);
 
             case AnatomySceneId.Summit:
-            default:
                 return new AnatomyTutorSceneSnapshot(
                     sceneId,
                     "summit",
-                    "The student is back on the mountain summit and the body is settling down after the climb.",
-                    "Finish the climb and watch the body return to homeostasis.",
-                    "Mountain summit, dashboard, heart, lungs, brain, and a calmer breathing rhythm.",
+                    "The student has reached the mountain summit after every system pulled its weight along the way.",
+                    "Take in the summit view and get ready to see how the body settles back down.",
+                    "Mountain summit view, dashboard, and the guide celebrating the climb.",
                     string.IsNullOrWhiteSpace(progressSummary)
-                        ? "Summit reached. The body is returning to balance."
+                        ? "Summit reached. The climb is complete."
+                        : progressSummary);
+
+            case AnatomySceneId.Homeostasis:
+                return new AnatomyTutorSceneSnapshot(
+                    sceneId,
+                    "homeostasis",
+                    "The student is watching the body settle back down after the climb — heart rate, breathing, and energy all returning to baseline.",
+                    "Watch heart rate and breathing settle back to their resting baseline as the body returns to balance.",
+                    "Heart, lungs, and a dashboard showing heart rate and breathing rate settling back down.",
+                    string.IsNullOrWhiteSpace(progressSummary)
+                        ? "Homeostasis in progress. The body is returning to balance."
+                        : progressSummary);
+
+            case AnatomySceneId.Completion:
+            default:
+                return new AnatomyTutorSceneSnapshot(
+                    sceneId,
+                    "completion",
+                    "The student has finished the Summit Challenge — every system worked together to get them here.",
+                    "Reflect on how muscular, skeletal, nervous, circulatory, respiratory, and digestive systems worked together, and how the body found balance again.",
+                    "Mountain summit, dashboard showing all completed systems, and the guide giving closing remarks.",
+                    string.IsNullOrWhiteSpace(progressSummary)
+                        ? "Summit Challenge complete."
                         : progressSummary);
         }
     }

@@ -602,7 +602,7 @@ GameObject:
   - component: {fileID: 1202269046}
   - component: {fileID: 1202269045}
   m_Layer: 0
-  m_Name: SceneNarrationController
+  m_Name: SceneFlowController
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -625,34 +625,119 @@ MonoBehaviour:
     checkpointIndex: 0
     sceneId: 0
     nextSceneName: Nervous
+    nextSceneId: 1
     onlyNarrateOnFirstVisit: 0
     advanceTrailCheckpointOnStart: 0
-    delayBeforeNarrationStart: 0
-    delayAfterNarrationBeforeTransition: 0
+    delayBeforeNarrationStart: 2
+    delayAfterNarrationBeforeTransition: 1
   - sceneName: Nervous
     checkpointIndex: 0
     sceneId: 1
     nextSceneName: Skeletal
+    nextSceneId: 2
     onlyNarrateOnFirstVisit: 0
     advanceTrailCheckpointOnStart: 0
-    delayBeforeNarrationStart: 0
-    delayAfterNarrationBeforeTransition: 0
+    delayBeforeNarrationStart: 1.5
+    delayAfterNarrationBeforeTransition: 1.5
   - sceneName: Skeletal
     checkpointIndex: 0
     sceneId: 2
     nextSceneName: _MountainTrail
+    nextSceneId: 3
     onlyNarrateOnFirstVisit: 0
     advanceTrailCheckpointOnStart: 1
-    delayBeforeNarrationStart: 0
-    delayAfterNarrationBeforeTransition: 0
+    delayBeforeNarrationStart: 1.5
+    delayAfterNarrationBeforeTransition: 1.5
   - sceneName: _MountainTrail
     checkpointIndex: 1
     sceneId: 3
-    nextSceneName: 
+    nextSceneName: Muscular
+    nextSceneId: 4
     onlyNarrateOnFirstVisit: 0
     advanceTrailCheckpointOnStart: 0
-    delayBeforeNarrationStart: 0
-    delayAfterNarrationBeforeTransition: 0
+    delayBeforeNarrationStart: 1.5
+    delayAfterNarrationBeforeTransition: 1.5
+  - sceneName: Muscular
+    checkpointIndex: 1
+    sceneId: 4
+    nextSceneName: Circulatory
+    nextSceneId: 5
+    onlyNarrateOnFirstVisit: 0
+    advanceTrailCheckpointOnStart: 0
+    delayBeforeNarrationStart: 1.5
+    delayAfterNarrationBeforeTransition: 1.5
+  - sceneName: Circulatory
+    checkpointIndex: 1
+    sceneId: 5
+    nextSceneName: _MountainTrail
+    nextSceneId: 6
+    onlyNarrateOnFirstVisit: 0
+    advanceTrailCheckpointOnStart: 1
+    delayBeforeNarrationStart: 1.5
+    delayAfterNarrationBeforeTransition: 1.5
+  - sceneName: _MountainTrail
+    checkpointIndex: 2
+    sceneId: 6
+    nextSceneName: Respiratory
+    nextSceneId: 7
+    onlyNarrateOnFirstVisit: 0
+    advanceTrailCheckpointOnStart: 0
+    delayBeforeNarrationStart: 1.5
+    delayAfterNarrationBeforeTransition: 1.5
+  - sceneName: Respiratory
+    checkpointIndex: 2
+    sceneId: 7
+    nextSceneName: _MountainTrail
+    nextSceneId: 8
+    onlyNarrateOnFirstVisit: 0
+    advanceTrailCheckpointOnStart: 1
+    delayBeforeNarrationStart: 1.5
+    delayAfterNarrationBeforeTransition: 1.5
+  - sceneName: _MountainTrail
+    checkpointIndex: 3
+    sceneId: 8
+    nextSceneName: Digestive
+    nextSceneId: 9
+    onlyNarrateOnFirstVisit: 0
+    advanceTrailCheckpointOnStart: 0
+    delayBeforeNarrationStart: 1.5
+    delayAfterNarrationBeforeTransition: 1.5
+  - sceneName: Digestive
+    checkpointIndex: 3
+    sceneId: 9
+    nextSceneName: _MountainTrail
+    nextSceneId: 10
+    onlyNarrateOnFirstVisit: 0
+    advanceTrailCheckpointOnStart: 1
+    delayBeforeNarrationStart: 1.5
+    delayAfterNarrationBeforeTransition: 1.5
+  - sceneName: _MountainTrail
+    checkpointIndex: 4
+    sceneId: 10
+    nextSceneName: Homeostasis
+    nextSceneId: 11
+    onlyNarrateOnFirstVisit: 0
+    advanceTrailCheckpointOnStart: 0
+    delayBeforeNarrationStart: 1.5
+    delayAfterNarrationBeforeTransition: 1.5
+  - sceneName: Homeostasis
+    checkpointIndex: 4
+    sceneId: 11
+    nextSceneName: _MountainTrail
+    nextSceneId: 12
+    onlyNarrateOnFirstVisit: 0
+    advanceTrailCheckpointOnStart: 1
+    delayBeforeNarrationStart: 1.5
+    delayAfterNarrationBeforeTransition: 1.5
+  - sceneName: _MountainTrail
+    checkpointIndex: 5
+    sceneId: 12
+    nextSceneName: 
+    nextSceneId: 12
+    onlyNarrateOnFirstVisit: 0
+    advanceTrailCheckpointOnStart: 0
+    delayBeforeNarrationStart: 1.5
+    delayAfterNarrationBeforeTransition: 1.5
   aiTutor: {fileID: 1091485228}
   verbose: 1
 --- !u!4 &1202269046
@@ -776,6 +861,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4f5f7e32115ed2642a6733bedb58a769, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AIGuidePositioner
+  scenesWithoutSpawnPoint:
+  - _Bootstrap
   navMeshAgent: {fileID: 0}
   verbose: 1
 --- !u!1660057539 &9223372036854775807

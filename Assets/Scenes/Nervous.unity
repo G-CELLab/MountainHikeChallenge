@@ -228,6 +228,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: AIGuideSpawnPoint
       objectReference: {fileID: 0}
+    - target: {fileID: 4422107085299641628, guid: 36e351a1cf9e2744392cbf93d71fa97d, type: 3}
+      propertyPath: checkpointIndex
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 7037610654914571474, guid: 36e351a1cf9e2744392cbf93d71fa97d, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0.745
@@ -285,9 +289,13 @@ PrefabInstance:
       propertyPath: m_Name
       value: SpawnPoint
       objectReference: {fileID: 0}
+    - target: {fileID: 6975308250054518258, guid: 4afe71e8e0366e645a2c94d8c5ad425e, type: 3}
+      propertyPath: checkpointIndex
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 7974103311592148773, guid: 4afe71e8e0366e645a2c94d8c5ad425e, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -0.20719
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7974103311592148773, guid: 4afe71e8e0366e645a2c94d8c5ad425e, type: 3}
       propertyPath: m_LocalPosition.y
@@ -295,7 +303,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7974103311592148773, guid: 4afe71e8e0366e645a2c94d8c5ad425e, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0.05956
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7974103311592148773, guid: 4afe71e8e0366e645a2c94d8c5ad425e, type: 3}
       propertyPath: m_LocalRotation.w

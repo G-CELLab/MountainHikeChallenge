@@ -14,12 +14,16 @@
 /// SceneNarrationController ever speaks (the flow entry for _MountainTrail at
 /// checkpoint 0 maps to AnatomySceneId.Trailhead), so it's where Carla
 /// introduces herself and the premise, not just where the Trailhead scene's
-/// own content lives. There's deliberately no separate "Intro" line anymore —
-/// one existed here previously but was never wired into the flow (no
-/// AnatomySceneId.Intro for SceneNarrationController to route to), so it sat
-/// in the prefetch cache and was never actually spoken. If you ever want a
-/// distinct intro separate from Trailhead's own content, it needs an actual
-/// AnatomySceneId + flow entry, not just a string here.
+/// own content lives.
+///
+/// Full flow (see AnatomySceneId for the canonical order):
+///   Trailhead → Nervous → Skeletal → SteepIncline → Muscular → Circulatory
+///   → ThinAir → Respiratory → EnergyCrash → Digestive → Summit
+///   → Homeostasis → Completion
+///
+/// Muscular, ThinAir, EnergyCrash, and Completion below are first-draft
+/// placeholders — written to match tone/length of the existing lines, but
+/// meant to be rewritten, not treated as final copy.
 ///
 /// This is the single file to edit for all narration copy.
 /// No Unity dependencies, no logic — strings only.
@@ -54,13 +58,25 @@ public static class NarrationLines
         "Feel that? Your legs are working harder. Your heart is beating faster. Your body knows the demand has increased, and every system is responding. " +
         "Keep climbing — you're about to see exactly what's happening inside.";
 
+    public static readonly string Muscular =
+        "This is muscle tissue, up close. Each fiber contracts and pulls on the tendon it's attached to, and that pull is what drags your bones forward with every stride. " +
+        "Pull the fibers with me and watch the leg drive against the slope.";
+
     public static readonly string Circulatory =
         "This is your heart. It is a pump, not a factory, and each squeeze sends blood toward the lungs and the legs at the same time. " +
         "Pump with both hands and watch the oxygen arrive where the muscles need it.";
 
+    public static readonly string ThinAir =
+        "Notice your breathing? The air up here has less oxygen in it, so your lungs have to work harder just to deliver the same amount your muscles are asking for. " +
+        "Keep climbing — we're about to go see exactly how your lungs are keeping up.";
+
     public static readonly string Respiratory =
         "Now we are inside the lungs. The diaphragm moves downward to make room for air, and the alveoli move oxygen into the blood before it heads back to the heart. " +
         "Breathing and circulation work as one loop.";
+
+    public static readonly string EnergyCrash =
+        "Feeling that heaviness in your legs? Your blood sugar is dropping — your muscles have been burning fuel this whole climb, and now your body is telling you it needs more. " +
+        "Let's go find out where that fuel actually comes from.";
 
     public static readonly string Digestive =
         "Most digestion does not happen in the stomach. The small intestine is where nutrients move into the bloodstream so the muscles can keep climbing. " +
@@ -73,19 +89,28 @@ public static class NarrationLines
     public static readonly string Homeostasis =
         "Your heart rate is settling, your breathing is evening out, and your body is finding balance again. That is homeostasis.";
 
+    public static readonly string Completion =
+        "That's the Summit Challenge. Muscular, skeletal, nervous, circulatory, respiratory, and digestive — six systems, one climb, and your body brought all of them back into balance. " +
+        "Great work today.";
+
     public static string GetSceneNarration(AnatomySceneId sceneId)
     {
         switch (sceneId)
         {
-            case AnatomySceneId.Trailhead:   return Trailhead;
-            case AnatomySceneId.Nervous:     return Nervous;
-            case AnatomySceneId.Skeletal:    return Skeletal;
+            case AnatomySceneId.Trailhead:    return Trailhead;
+            case AnatomySceneId.Nervous:      return Nervous;
+            case AnatomySceneId.Skeletal:     return Skeletal;
             case AnatomySceneId.SteepIncline: return SteepIncline;
-            case AnatomySceneId.Circulatory: return Circulatory;
-            case AnatomySceneId.Respiratory: return Respiratory;
-            case AnatomySceneId.Digestive:   return Digestive;
-            case AnatomySceneId.Summit:
-            default:                         return Summit;
+            case AnatomySceneId.Muscular:     return Muscular;
+            case AnatomySceneId.Circulatory:  return Circulatory;
+            case AnatomySceneId.ThinAir:      return ThinAir;
+            case AnatomySceneId.Respiratory:  return Respiratory;
+            case AnatomySceneId.EnergyCrash:  return EnergyCrash;
+            case AnatomySceneId.Digestive:    return Digestive;
+            case AnatomySceneId.Summit:       return Summit;
+            case AnatomySceneId.Homeostasis:  return Homeostasis;
+            case AnatomySceneId.Completion:
+            default:                          return Completion;
         }
     }
 }
