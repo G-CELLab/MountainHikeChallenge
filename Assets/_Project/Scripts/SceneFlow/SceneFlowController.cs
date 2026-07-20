@@ -25,13 +25,13 @@ using UnityEngine.SceneManagement;
 ///   1. Looks up (scene.name, currentCheckpoint) in `flow`.
 ///   2. If found: applies AnatomyTutorSession context, speaks the cached
 ///      NarrationLines entry for that step's sceneId, waits for it to
-///      finish, raises OnSceneNarrationCompleted, then (if nextSceneName is
+///      finish, raises OnSceneFlowCompleted, then (if nextSceneName is
 ///      set) loads the next scene after a short beat.
 ///   3. If not found: does nothing for this scene load — either it's a
 ///      scene that doesn't narrate (e.g. _Bootstrap), or you haven't wired
 ///      up what happens at this checkpoint yet.
 /// </summary>
-public class SceneNarrationController : MonoBehaviour
+public class SceneFlowController : MonoBehaviour
 {
     [Serializable]
     public class SceneFlowStep
@@ -72,16 +72,32 @@ public class SceneNarrationController : MonoBehaviour
 
         [Tooltip("Beat after narration completes before loading the next scene.")]
         public float delayAfterNarrationBeforeTransition = 1.5f;
+
+        [Tooltip("TESTING ONLY — check to mute just this step's narration line. Scene transition, " +
+                 "checkpoint advancement, and visited-tracking still happen exactly as normal — only " +
+                 "the spoken audio (and the tutor's gestures tied to it) are skipped. Leave unchecked " +
+                 "for anything you're not actively speeding through.")]
+        public bool skipNarrationForTesting = false;
+
+        [Tooltip("If checked, the automatic transition to nextSceneName WAITS for " +
+                 "MiniGameEvents.OnMiniGameComplete to fire with a system name matching this step's " +
+                 "sceneId (e.g. sceneId = Nervous fires on MiniGameEvents.TriggerMiniGameComplete(\"Nervous\")) " +
+                 "before proceeding — narration finishing (or being skipped for testing) is no longer " +
+                 "enough by itself to advance. Check this for any scene where the player must actually " +
+                 "finish the gesture minigame before moving on. Leave unchecked for narration-only scenes " +
+                 "with no minigame (Trailhead, Summit, etc.).")]
+        public bool waitForMiniGameCompletion = false;
     }
 
-    public static SceneNarrationController Instance { get; private set; }
+    public static SceneFlowController Instance { get; private set; }
 
     /// <summary>
-    /// Fires after a scene's narration completes (or is skipped as a repeat visit),
-    /// with the scene name that just finished. Subscribe from any per-scene script
-    /// that needs to react — no Inspector wiring required.
+    /// Fires after a scene's flow completes (or is skipped as a repeat visit,
+    /// or muted for testing), with the scene name that just finished.
+    /// Subscribe from any per-scene script that needs to react — no Inspector
+    /// wiring required.
     /// </summary>
-    public static event Action<string> OnSceneNarrationCompleted;
+    public static event Action<string> OnSceneFlowCompleted;
 
     [Header("Scene Flow")]
     [Tooltip("One entry per (scene, checkpoint) combination that should auto-narrate. " +
@@ -96,6 +112,21 @@ public class SceneNarrationController : MonoBehaviour
     [Header("Debug")]
     public bool verbose = true;
 
+    [Header("Testing")]
+    [Tooltip("TESTING ONLY — master switch to mute ALL narration across every scene at once. " +
+             "Scene transitions, checkpoint advancement, and visited-tracking still happen exactly " +
+             "as normal for every step — only the spoken audio/gestures are skipped. Faster than " +
+             "unchecking every step individually when you just want to blast through the whole flow. " +
+             "Turn this back off before a real playtest or build.")]
+    [SerializeField] private bool skipAllNarrationForTesting = false;
+
+    [Tooltip("TESTING ONLY — when narration is being skipped (by either toggle above), also suppress " +
+             "the automatic transition to nextSceneName, so you stay in this scene as long as you want " +
+             "to actually test its minigame instead of being auto-advanced away after ~1-2 seconds. " +
+             "Uncheck this if you specifically want to test the full auto-flow at high speed instead " +
+             "(e.g. verifying checkpoint/transition logic end-to-end without sitting through audio).")]
+    [SerializeField] private bool stayInSceneWhenSkippingForTesting = true;
+
     private static bool _persisted = false;
     private Dictionary<(string sceneName, int checkpoint), SceneFlowStep> _flowLookup;
 
@@ -105,7 +136,7 @@ public class SceneNarrationController : MonoBehaviour
     {
         if (_persisted)
         {
-            if (verbose) Debug.Log("[SceneNarrationController] Duplicate detected — destroying this GameObject only.");
+            if (verbose) Debug.Log("[SceneFlowController] Duplicate detected — destroying this GameObject only.");
             Destroy(gameObject);
             return;
         }
@@ -136,7 +167,7 @@ public class SceneNarrationController : MonoBehaviour
             var key = (step.sceneName, step.checkpointIndex);
             if (_flowLookup.ContainsKey(key))
             {
-                Debug.LogWarning($"[SceneNarrationController] Duplicate flow entry for scene " +
+                Debug.LogWarning($"[SceneFlowController] Duplicate flow entry for scene " +
                                   $"'{step.sceneName}' at checkpoint {step.checkpointIndex} — using the first one.");
                 continue;
             }
@@ -159,7 +190,7 @@ public class SceneNarrationController : MonoBehaviour
         if (!_flowLookup.TryGetValue((scene.name, checkpoint), out SceneFlowStep step))
         {
             if (verbose)
-                Debug.Log($"[SceneNarrationController] No flow entry for '{scene.name}' at checkpoint {checkpoint} — skipping.");
+                Debug.Log($"[SceneFlowController] No flow entry for '{scene.name}' at checkpoint {checkpoint} — skipping.");
             return;
         }
 
@@ -189,9 +220,47 @@ public class SceneNarrationController : MonoBehaviour
         if (step.onlyNarrateOnFirstVisit && alreadyVisited)
         {
             if (verbose)
-                Debug.Log($"[SceneNarrationController] '{visitKey}' already visited — skipping narration.");
+                Debug.Log($"[SceneFlowController] '{visitKey}' already visited — skipping flow.");
 
-            HandleNarrationComplete(step, sceneName);
+            HandleFlowComplete(step, sceneName);
+            yield break;
+        }
+
+        bool skipForTesting = skipAllNarrationForTesting || step.skipNarrationForTesting;
+        if (skipForTesting)
+        {
+            if (verbose)
+                Debug.Log($"[SceneFlowController] 🔇 Narration skipped for testing: '{visitKey}'.");
+
+            // Same bookkeeping the real completion handler does — testing
+            // should still progress checkpoints/visited-state correctly, only
+            // the actual audio/gesture playback is what's being skipped.
+            MiniGameSequencer.Instance.MarkVisited(visitKey);
+            if (step.advanceTrailCheckpointOnStart)
+                MiniGameSequencer.Instance.AdvanceTrailCheckpoint();
+
+            if (step.waitForMiniGameCompletion)
+            {
+                // Even in testing, the actual thing worth testing is the
+                // minigame completing — route through the real gate below
+                // instead of freezing here with nothing to wait for.
+                HandleFlowComplete(step, sceneName);
+            }
+            else if (stayInSceneWhenSkippingForTesting)
+            {
+                // Deliberately does NOT call HandleFlowComplete here — that's
+                // what queues the automatic transition to nextSceneName. Still
+                // fire the completion event so anything listening (HUD, etc.)
+                // knows this step is "done," it just doesn't chain onward.
+                if (verbose)
+                    Debug.Log($"[SceneFlowController] Staying in '{sceneName}' for testing — auto-transition suppressed.");
+                OnSceneFlowCompleted?.Invoke(sceneName);
+            }
+            else
+            {
+                HandleFlowComplete(step, sceneName);
+            }
+
             yield break;
         }
 
@@ -200,9 +269,9 @@ public class SceneNarrationController : MonoBehaviour
 
         if (aiTutor == null)
         {
-            Debug.LogWarning("[SceneNarrationController] No AITutor found — skipping narration, " +
+            Debug.LogWarning("[SceneFlowController] No AITutor found — skipping narration, " +
                               "firing completion immediately so the flow doesn't stall.");
-            HandleNarrationComplete(step, sceneName);
+            HandleFlowComplete(step, sceneName);
             yield break;
         }
 
@@ -210,8 +279,8 @@ public class SceneNarrationController : MonoBehaviour
 
         if (string.IsNullOrWhiteSpace(line))
         {
-            Debug.LogWarning("[SceneNarrationController] Narration line is empty — skipping.");
-            HandleNarrationComplete(step, sceneName);
+            Debug.LogWarning("[SceneFlowController] Narration line is empty — skipping.");
+            HandleFlowComplete(step, sceneName);
             yield break;
         }
 
@@ -229,22 +298,66 @@ public class SceneNarrationController : MonoBehaviour
             if (step.advanceTrailCheckpointOnStart)
                 MiniGameSequencer.Instance.AdvanceTrailCheckpoint();
 
-            HandleNarrationComplete(step, sceneName);
+            HandleFlowComplete(step, sceneName);
         };
         aiTutor.OnNarrationCompleted.AddListener(handler);
 
-        if (verbose) Debug.Log($"[SceneNarrationController] Speaking narration for '{visitKey}': {line}");
+        if (verbose) Debug.Log($"[SceneFlowController] Speaking narration for '{visitKey}': {line}");
         aiTutor.SpeakNarration(line);
     }
 
-    private void HandleNarrationComplete(SceneFlowStep step, string sceneName)
+    private void HandleFlowComplete(SceneFlowStep step, string sceneName)
     {
-        OnSceneNarrationCompleted?.Invoke(sceneName);
+        OnSceneFlowCompleted?.Invoke(sceneName);
 
-        if (!string.IsNullOrWhiteSpace(step.nextSceneName))
+        if (string.IsNullOrWhiteSpace(step.nextSceneName))
+        {
+            if (verbose)
+                Debug.Log($"[SceneFlowController] '{sceneName}' at checkpoint {step.checkpointIndex} has no next scene — staying put.");
+            return;
+        }
+
+        if (step.waitForMiniGameCompletion)
+            StartCoroutine(WaitForMiniGameThenTransition(step));
+        else
             StartCoroutine(TransitionAfterDelay(step));
-        else if (verbose)
-            Debug.Log($"[SceneNarrationController] '{sceneName}' at checkpoint {step.checkpointIndex} has no next scene — staying put.");
+    }
+
+    /// <summary>
+    /// Blocks the transition until MiniGameEvents.OnMiniGameComplete fires
+    /// with a system name matching step.sceneId — e.g. sceneId = Nervous
+    /// waits specifically for TriggerMiniGameComplete("Nervous"), which is
+    /// exactly what NervousSystemInteraction fires once every neuron's been
+    /// touched. This is what actually stops the scene from changing before
+    /// the player has finished the task, instead of a fixed timer that has
+    /// no idea whether the minigame is done.
+    /// </summary>
+    private IEnumerator WaitForMiniGameThenTransition(SceneFlowStep step)
+    {
+        string expectedSystem = step.sceneId.ToString();
+        bool completed = false;
+
+        Action<string> handler = null;
+        handler = (system) =>
+        {
+            if (system == expectedSystem)
+            {
+                completed = true;
+                MiniGameEvents.OnMiniGameComplete -= handler;
+            }
+        };
+        MiniGameEvents.OnMiniGameComplete += handler;
+
+        if (verbose)
+            Debug.Log($"[SceneFlowController] Waiting for minigame completion ('{expectedSystem}') before transitioning to '{step.nextSceneName}'...");
+
+        while (!completed)
+            yield return null;
+
+        if (verbose)
+            Debug.Log($"[SceneFlowController] ✅ Minigame '{expectedSystem}' complete — proceeding to transition.");
+
+        yield return TransitionAfterDelay(step);
     }
 
     private IEnumerator TransitionAfterDelay(SceneFlowStep step)
@@ -252,7 +365,7 @@ public class SceneNarrationController : MonoBehaviour
         if (step.delayAfterNarrationBeforeTransition > 0f)
             yield return new WaitForSecondsRealtime(step.delayAfterNarrationBeforeTransition);
 
-        if (verbose) Debug.Log($"[SceneNarrationController] Loading next scene: '{step.nextSceneName}'");
+        if (verbose) Debug.Log($"[SceneFlowController] Loading next scene: '{step.nextSceneName}'");
 
         // Hand off to SceneTransitionManager so this transition gets the same
         // fade + HikeState handling as every other scene change in the game,

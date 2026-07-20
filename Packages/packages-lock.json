@@ -174,6 +174,18 @@
       "dependencies": {},
       "url": "https://packages.unity.com"
     },
+    "com.unity.probuilder": {
+      "version": "6.1.2",
+      "depth": 0,
+      "source": "registry",
+      "dependencies": {
+        "com.unity.shadergraph": "17.0.3",
+        "com.unity.modules.imgui": "1.0.0",
+        "com.unity.modules.physics": "1.0.0",
+        "com.unity.settings-manager": "1.0.3"
+      },
+      "url": "https://packages.unity.com"
+    },
     "com.unity.render-pipelines.core": {
       "version": "17.5.0",
       "depth": 1,
@@ -280,19 +292,6 @@
         "com.unity.modules.physics": "1.0.0"
       }
     },
-    "com.unity.xr.androidxr-openxr": {
-      "version": "1.3.1",
-      "depth": 0,
-      "source": "registry",
-      "dependencies": {
-        "com.unity.xr.hands": "1.6.1",
-        "com.unity.xr.openxr": "1.17.0",
-        "com.unity.xr.management": "4.5.0",
-        "com.unity.xr.arfoundation": "6.4.0",
-        "com.unity.xr.compositionlayers": "2.3.0"
-      },
-      "url": "https://packages.unity.com"
-    },
     "com.unity.xr.arfoundation": {
       "version": "6.5.0",
       "depth": 0,
@@ -308,17 +307,6 @@
         "com.unity.modules.particlesystem": "1.0.0",
         "com.unity.modules.unityanalytics": "1.0.0",
         "com.unity.modules.unitywebrequest": "1.0.0"
-      },
-      "url": "https://packages.unity.com"
-    },
-    "com.unity.xr.compositionlayers": {
-      "version": "2.4.0",
-      "depth": 0,
-      "source": "registry",
-      "dependencies": {
-        "com.unity.inputsystem": "1.6.3",
-        "com.unity.xr.core-utils": "2.2.2",
-        "com.unity.xr.management": "4.0.1"
       },
       "url": "https://packages.unity.com"
     },
@@ -381,31 +369,17 @@
       },
       "url": "https://packages.unity.com"
     },
-    "com.unity.xr.meta-openxr": {
-      "version": "2.5.0",
-      "depth": 0,
-      "source": "registry",
-      "dependencies": {
-        "com.unity.xr.openxr": "1.15.1",
-        "com.unity.xr.core-utils": "2.5.1",
-        "com.unity.xr.management": "4.4.0",
-        "com.unity.xr.arfoundation": "6.5.0",
-        "com.unity.xr.compositionlayers": "2.4.0"
-      },
-      "url": "https://packages.unity.com"
-    },
     "com.unity.xr.openxr": {
-      "version": "1.17.1",
+      "version": "file:com.unity.xr.openxr",
       "depth": 0,
-      "source": "registry",
+      "source": "embedded",
       "dependencies": {
+        "com.unity.xr.management": "4.4.0",
+        "com.unity.xr.legacyinputhelpers": "2.1.2",
         "com.unity.inputsystem": "1.6.3",
         "com.unity.xr.core-utils": "2.3.0",
-        "com.unity.xr.management": "4.4.0",
-        "com.unity.modules.androidjni": "1.0.0",
-        "com.unity.xr.legacyinputhelpers": "2.1.2"
-      },
-      "url": "https://packages.unity.com"
+        "com.unity.modules.androidjni": "1.0.0"
+      }
     },
     "com.unity.modules.accessibility": {
       "version": "1.0.0",
