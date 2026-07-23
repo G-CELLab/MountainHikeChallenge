@@ -12,9 +12,9 @@ using System;
 /// hand. Set Side in the inspector — Left hand = Left, Right hand = Right.
 ///
 /// Place this component directly on the "Left Hand" / "Right Hand" GameObject
-/// in the XR Origin Hands rig (the one that already has Near-Far Interactor
-/// and Poke Interactor as children) — that's the object EnsureInteractorReference()
-/// is designed to find things from.
+/// in the XR Origin Hands rig (the one that already has the Poke Interactor
+/// as a child) — that's the object EnsureInteractorReference() is designed to
+/// find things from.
 ///
 /// This is meant to be the ONE place per-hand tracking data is read from.
 /// Minigame scripts should pull data from HandManager.Get(Side.Left) /
@@ -33,7 +33,7 @@ public class HandManager : MonoBehaviour
     public bool isGrabbed = false;
 
     [Header("Interactor Source")]
-    [SerializeField] private NearFarInteractor handInteractor;
+    [SerializeField] private XRPokeInteractor handInteractor;
 
     [Header("Fist Settings")]
     [SerializeField] private float fistThreshold = 0.08f;
@@ -244,15 +244,23 @@ public class HandManager : MonoBehaviour
     {
         if (handInteractor == null) return;
 
-        handInteractor.selectInput.inputSourceMode =
-            (UnityEngine.XR.Interaction.Toolkit.Inputs.Readers.XRInputButtonReader.InputSourceMode)4;
+        // XRPokeInteractor has no selectInput / input-reader setup to disable
+        // (unlike NearFarInteractor, it doesn't extend XRBaseInputInteractor) —
+        // its native select behavior comes purely from physical poke depth
+        // against an XRPokeFilter, not from an input action. We still clear
+        // attachTransform since HandManager drives selection manually via
+        // StartManualInteraction/EndManualInteraction based on the fist gesture,
+        // not via the poke depth itself.
         handInteractor.attachTransform = null;
 
-        foreach (Transform child in handInteractor.transform)
-        {
-            if (child.name.Contains("Select Input") || child.name.Contains("UI Press Input"))
-                child.gameObject.SetActive(false);
-        }
+        // Poke depth is a physical touch — if physics collision poke-selects an
+        // object on its own (independent of the fist gesture), that will race
+        // against the manual grab logic below. Disabling physics-layer overlap
+        // here would defeat the point of using a poke interactor at all, so
+        // this is left enabled: it's on the scene/prefab setup (poke filter
+        // depth, physics layers) to make sure only intended surfaces are
+        // poke-selectable, and on this script's UpdateXRISelection() to react
+        // to whichever selection state currently exists.
     }
 
     private void FindVisualPalm()
@@ -281,9 +289,9 @@ public class HandManager : MonoBehaviour
     private void EnsureInteractorReference()
     {
         if (handInteractor != null && handInteractor.gameObject.activeInHierarchy) return;
-        handInteractor = GetComponentInChildren<NearFarInteractor>(true);
+        handInteractor = GetComponentInChildren<XRPokeInteractor>(true);
         if (handInteractor == null && transform.parent != null)
-            handInteractor = transform.parent.GetComponentInChildren<NearFarInteractor>(true);
+            handInteractor = transform.parent.GetComponentInChildren<XRPokeInteractor>(true);
     }
 
     // ── XRI Selection ─────────────────────────────────────────────────────────

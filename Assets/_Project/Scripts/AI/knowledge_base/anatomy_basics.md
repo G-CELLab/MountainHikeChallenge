@@ -34,7 +34,7 @@ tissues, which are built into organs, which work together as organ systems.
 - The digestive system turns food into glucose that enters the bloodstream.
 
 ## Trailhead Scene
-- The brain decides to move and sends a signal down the spinal cord.
+- The brain decides to move and sends a signal down the spinal cord to the legs.
 - The spine is a pathway for that signal.
 - Joints need to lock into position before the first step.
 
@@ -48,10 +48,6 @@ The nervous system starts the movement, and the skeletal system keeps the body s
 - Muscles need a steady supply of oxygen and glucose from the blood to keep contracting; on a
   steep climb, that demand rises fast, which is why the heart and lungs speed up at the same
   time the legs are working harder.
-- Note for the tutor: there is currently no separate in-VR muscular mini-game scene — the
-  muscular system is introduced narratively during the Steep Incline trail segment, alongside
-  the circulatory response. If a learner asks about muscles specifically, answer from this
-  section rather than inventing a scene interaction that doesn't exist yet.
 
 Short answer:
 Muscles contract to move the legs, and they need oxygen and glucose from the blood to keep going.
