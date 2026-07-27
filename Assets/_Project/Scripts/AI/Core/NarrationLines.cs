@@ -21,7 +21,20 @@
 ///   → ThinAir → Respiratory → EnergyCrash → Digestive → Summit
 ///   → Homeostasis → Completion
 ///
-/// Muscular, ThinAir, EnergyCrash, and Completion below are first-draft
+/// IMPORTANT — the 7 mini-game scenes (Nervous, Skeletal, Muscular,
+/// Circulatory, Respiratory, Digestive, Homeostasis) do NOT get the old
+/// descriptive/gesture-instruction narration anymore. Each one's constant
+/// below IS its Socratic dialogue's Articulate Initial opening question —
+/// nothing else plays on entry. Whatever calls
+/// SpeakNarration(GetSceneNarration(sceneId)) on scene load (SceneFlowController)
+/// needs no changes: it already speaks whatever these constants return, and
+/// that's now the question itself. Everything the student says in reply is
+/// what goes through SocraticDialogueController / AIResponseGenerator's
+/// assessed pipeline. The mountain-trail narrative beats (Trailhead,
+/// SteepIncline, ThinAir, EnergyCrash, Summit, Completion) are untouched —
+/// they have no mini-game attached and keep their full descriptive narration.
+///
+/// ThinAir, EnergyCrash, and Completion below are still first-draft
 /// placeholders — written to match tone/length of the existing lines, but
 /// meant to be rewritten, not treated as final copy.
 ///
@@ -30,7 +43,7 @@
 /// </summary>
 public static class NarrationLines
 {
-    // ── Scene introductions ──────────────────────────────────────────────────
+    // ── Mountain-trail narrative beats (no mini-game — unchanged) ───────────
 
     public static readonly string Trailhead =
         "Hi — I'm Carla, and I'll be climbing this mountain with you. " +
@@ -46,52 +59,55 @@ public static class NarrationLines
         "and your skeleton is locking your joints into place so you don't stumble. " +
         "Trace the spine gesture with me, then look for the glowing neurons — that's your nervous system saying 'go.'";
 
-    public static readonly string Nervous =
-        "Even before your first step, your brain sends an electrical signal down your spinal cord to your legs — think of it like a text message telling your muscles it's time to move. " +
-        "Trace the signal with me, then look for the glowing neurons.";
-
-    public static readonly string Skeletal =
-        "Before your leg can move, your skeletal system has to lock your joints into place. Without your bones providing that structure, your muscles would have nothing to pull against. " +
-        "Watch the knee joints lock as you take your first step.";
-
     public static readonly string SteepIncline =
         "Feel that? Your legs are working harder. Your heart is beating faster. Your body knows the demand has increased, and every system is responding. " +
         "Keep climbing — you're about to see exactly what's happening inside.";
-
-    public static readonly string Muscular =
-        "This is muscle tissue, up close. Each fiber contracts and pulls on the tendon it's attached to, and that pull is what drags your bones forward with every stride. " +
-        "Pull the fibers with me and watch the leg drive against the slope.";
-
-    public static readonly string Circulatory =
-        "This is your heart. It is a pump, not a factory, and each squeeze sends blood toward the lungs and the legs at the same time. " +
-        "Pump with both hands and watch the oxygen arrive where the muscles need it.";
 
     public static readonly string ThinAir =
         "Notice your breathing? The air up here has less oxygen in it, so your lungs have to work harder just to deliver the same amount your muscles are asking for. " +
         "Keep climbing — we're about to go see exactly how your lungs are keeping up.";
 
-    public static readonly string Respiratory =
-        "Now we are inside the lungs. The diaphragm moves downward to make room for air, and the alveoli move oxygen into the blood before it heads back to the heart. " +
-        "Breathing and circulation work as one loop.";
-
     public static readonly string EnergyCrash =
         "Feeling that heaviness in your legs? Your blood sugar is dropping — your muscles have been burning fuel this whole climb, and now your body is telling you it needs more. " +
         "Let's go find out where that fuel actually comes from.";
-
-    public static readonly string Digestive =
-        "Most digestion does not happen in the stomach. The small intestine is where nutrients move into the bloodstream so the muscles can keep climbing. " +
-        "Use peristalsis, then pull the glucose through the wall into the blood.";
 
     public static readonly string Summit =
         "Excellent work. Every step up this mountain depended on your muscles, bones, lungs, heart, brain, and digestive system working together. " +
         "No single body system could have completed the climb alone, and now your body is returning to homeostasis.";
 
-    public static readonly string Homeostasis =
-        "Your heart rate is settling, your breathing is evening out, and your body is finding balance again. That is homeostasis.";
-
     public static readonly string Completion =
         "That's the Summit Challenge. Muscular, skeletal, nervous, circulatory, respiratory, and digestive — six systems, one climb, and your body brought all of them back into balance. " +
         "Great work today.";
+
+    // ── Mini-game Socratic dialogue starting questions ──────────────────────
+    // These ARE the mini-game scene's entire narration now — see the class
+    // doc above. Deliberately broad/observational, not "how does this work"
+    // — see SocraticDialogueController's ArticulateInitial instructions for
+    // why: the AI bridges from "what do you see" to mechanism itself, so
+    // the very first question a student hears is one they can't get wrong.
+    // First-draft copy, meant to be rewritten to the professor's exact
+    // wording, not treated as final.
+
+    public static readonly string Nervous =
+        "Take a look around — what do you see in front of you?";
+
+    public static readonly string Skeletal =
+        "What do you notice about the joint right in front of you?";
+
+    public static readonly string Muscular =
+        "Take a close look — what do you see here inside the leg?";
+
+    public static readonly string Circulatory =
+        "What do you see in front of you right now?";
+
+    public static readonly string Respiratory =
+        "Look around — what do you notice in here?";
+
+    public static readonly string Digestive =
+        "What does it look like where you're standing right now?";
+
+    public static readonly string Homeostasis =
+        "Take a look at the dashboard in front of you — what do you notice?";
 
     public static string GetSceneNarration(AnatomySceneId sceneId)
     {

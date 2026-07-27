@@ -168,9 +168,9 @@ public static class AnatomyTutorSession
                 return new AnatomyTutorSceneSnapshot(
                     sceneId,
                     "trailhead",
-                    "The student is at the base of Mount Timpanogos. The trail is steep and the guide is about to show how the body starts the climb.",
-                    "Watch the nervous system send the go signal and the skeletal system lock the joints before the first step.",
-                    "Glowing neurons, spinal cord pathway, knee joints, and the guide's spine gesture.",
+                    "The student is at the base of Mount Timpanogos. The trail is steep and the guide is about to show how the body starts the climb. This is narrative only — the nervous and skeletal systems each get their own dedicated scene right after this one, where the actual interactions live.",
+                    "Just watch and listen for now — the Nervous and Skeletal scenes right after this one are where the student will actually interact.",
+                    "The base of the mountain trail. No hands-on interaction happens in this scene.",
                     string.IsNullOrWhiteSpace(progressSummary)
                         ? "Trailhead ready. The climb has just begun."
                         : progressSummary);
@@ -179,9 +179,9 @@ public static class AnatomyTutorSession
                 return new AnatomyTutorSceneSnapshot(
                     sceneId,
                     "nervous",
-                    "The student is focused on the nervous system — the brain sending the signal to move down the spinal cord.",
-                    "Trace the signal down the spine and tap the glowing neurons to send it toward the legs.",
-                    "Glowing neurons, spinal cord pathway, and the guide's spine-tracing gesture.",
+                    "The student is facing a full nervous system — a brain connected through the spinal cord to nerves that branch out to both arms and legs.",
+                    "Touch each glowing neuron near the brain. Touching one automatically sends a glowing signal down the spinal cord, which then splits and travels down both legs — no tracing or gesture needed, just watch it happen.",
+                    "A brain with a spinal cord and branching nerves reaching the arms and legs, plus 6 glowing neurons near the brain that discharge (flash and disappear) when touched.",
                     string.IsNullOrWhiteSpace(progressSummary)
                         ? "Nervous scene ready. The signal to move is just starting."
                         : progressSummary);

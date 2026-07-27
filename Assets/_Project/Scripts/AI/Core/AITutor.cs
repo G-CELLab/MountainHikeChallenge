@@ -17,6 +17,32 @@ using UnityEngine.Events;
 ///         → per sentence: EnqueueTTS() → PrefetchNext() → DrainTTSQueue()
 ///     → GestureSynchronizer.ProcessResponse() (keyword-driven, no fallback)
 ///
+/// Socratic dialogue mode (mini-games):
+///   When the current scene maps to a BodySystem (see
+///   GameManager.SystemsForScene — all 7 mini-games do) and that system
+///   isn't already complete, queries are routed through a
+///   SocraticDialogueController instead of the old one-shot Q&A path:
+///     GetOrCreateController(system) → phase instructions + assessment-tag
+///     protocol get folded into the system prompt, SocraticMemoryStore
+///     supplies this mini-game's history + any earlier mini-games'
+///     summaries, and the model's [[ASSESS:...]] tag (stripped before TTS
+///     ever sees it — see AIResponseGenerator) drives AdvanceAfterAssessment.
+///   When the controller resolves, MiniGameCompletionGate.MarkDialogueResolved
+///   fires and a short cross-system summary is generated and stored via
+///   SocraticMemoryStore.MarkResolved for later mini-games to reference.
+///   For most systems that alone completes the mini-game immediately
+///   (MiniGameEvents.TriggerMiniGameComplete), same as before — but a
+///   system whose scene has registered a physical-interaction requirement
+///   (see MiniGameCompletionGate, NervousSystemMiniGameController) won't
+///   actually complete until that physical condition is ALSO satisfied. Scenes with no mapped system (Trailhead, SteepIncline,
+///   ThinAir, EnergyCrash, Summit, Completion) keep the original free-form
+///   Q&A behavior untouched.
+///   Each mini-game scene's narration (see NarrationLines.GetSceneNarration)
+///   IS its Socratic dialogue's opening question now — nothing else plays
+///   on entry, and whatever already calls SpeakNarration(...) on scene load
+///   needs no changes. The student's reply to that question is the first
+///   turn that actually goes through RunQueryCoroutine below.
+///
 /// Interruption:
 ///   OnSpeechStarted fires as soon as VAD detects the user speaking.
 ///   This immediately stops TTS and goes to idle — before the transcript arrives.
@@ -78,6 +104,13 @@ public class AITutor : MonoBehaviour
     [Tooltip("How long to wait for the interrupted coroutine to release the gate before forcing a new query (seconds)")]
     [SerializeField] private float interruptTimeoutSec = 1.5f;
 
+    [Tooltip("Pre-fetches TTS audio for every narration line (all scene intros + all 7 mini-game " +
+             "starting questions) on startup, so they play instantly from cache instead of hitting " +
+             "TTS on demand. Costs one TTS call per line every time the game boots — turn this off " +
+             "while iterating/testing to stop burning tokens on lines you're not about to hear; the " +
+             "first play of each line will just have normal TTS latency instead of being instant.")]
+    [SerializeField] private bool enableNarrationPrefetch = true;
+
     [Header("Playback Safety")]
     [Tooltip("Extra seconds of headroom added on top of a clip's own length before DrainTTSQueue " +
              "gives up waiting on it. The timeout is now based on each clip's actual length (since " +
@@ -95,6 +128,13 @@ public class AITutor : MonoBehaviour
 
     private AIResponseGenerator _generator;
     private RAGIndex            _ragIndex;
+
+    // One controller per body system, created on first entry to that
+    // mini-game and kept for the rest of the play session (mirrors
+    // SocraticMemoryStore's lifetime) so re-entering a scene before it's
+    // complete doesn't reset progress through the dialogue.
+    private readonly Dictionary<BodySystem, SocraticDialogueController> _dialogueControllers =
+        new Dictionary<BodySystem, SocraticDialogueController>();
 
     // Keyed per-sentence now, not per full narration line — see SplitIntoSentences.
     private readonly Dictionary<string, AudioClip> _narrationCache = new Dictionary<string, AudioClip>();
@@ -139,7 +179,11 @@ public class AITutor : MonoBehaviour
 
         BuildRAGIndex();
         StartCoroutine(WarmUpOnStart());
-        StartCoroutine(PrefetchAllNarrations());
+
+        if (enableNarrationPrefetch)
+            StartCoroutine(PrefetchAllNarrations());
+        else
+            Debug.Log("[AITutor] Narration prefetch disabled (enableNarrationPrefetch = false) — lines will use normal TTS latency on first play.");
     }
 
     private void OnEnable()
@@ -149,6 +193,8 @@ public class AITutor : MonoBehaviour
             speechRecognizer.OnTranscriptReady += OnTranscriptReceived;
             speechRecognizer.OnSpeechStarted   += OnUserSpeechStarted;
         }
+
+        SocraticMemoryStore.OnReset += HandleSocraticMemoryReset;
     }
 
     private void OnDisable()
@@ -158,6 +204,20 @@ public class AITutor : MonoBehaviour
             speechRecognizer.OnTranscriptReady -= OnTranscriptReceived;
             speechRecognizer.OnSpeechStarted   -= OnUserSpeechStarted;
         }
+
+        SocraticMemoryStore.OnReset -= HandleSocraticMemoryReset;
+    }
+
+    /// <summary>
+    /// SocraticMemoryStore.ResetAll() (called from GameManager.ResetProgress)
+    /// clears its own records, but the per-system SocraticDialogueController
+    /// instances live here in AITutor — without this, a reset-and-replay
+    /// during playtesting would see stale resolved controllers and silently
+    /// skip every mini-game.
+    /// </summary>
+    private void HandleSocraticMemoryReset()
+    {
+        _dialogueControllers.Clear();
     }
 
     // ── Public API ────────────────────────────────────────────────────────────
@@ -441,6 +501,60 @@ public class AITutor : MonoBehaviour
         return result.ToArray();
     }
 
+    // ── Socratic dialogue helpers ─────────────────────────────────────────────
+
+    /// <summary>
+    /// Resolves the current scene to a BodySystem via GameManager's existing
+    /// scene→system mapping. Scenes with no mapped system (Trailhead,
+    /// SteepIncline, ThinAir, EnergyCrash, Summit, Completion) fall through
+    /// to false — those keep the original free-form Q&A path untouched.
+    /// </summary>
+    private bool TryGetCurrentMiniGameSystem(out BodySystem system)
+    {
+        foreach (BodySystem candidate in GameManager.SystemsForScene(AnatomyTutorSession.Current.SceneId))
+        {
+            system = candidate;
+            return true;
+        }
+        system = default;
+        return false;
+    }
+
+    private SocraticDialogueController GetOrCreateController(BodySystem system)
+    {
+        if (!_dialogueControllers.TryGetValue(system, out SocraticDialogueController controller))
+        {
+            controller = new SocraticDialogueController(system);
+            _dialogueControllers[system] = controller;
+        }
+        return controller;
+    }
+
+    /// <summary>
+    /// Fires once a SocraticDialogueController resolves (win or forced
+    /// reveal) and the wrap-up reply has finished being spoken: generates
+    /// the silent cross-system summary, stores it via SocraticMemoryStore,
+    /// and marks the dialogue side of MiniGameCompletionGate. For most
+    /// systems that's enough to complete the mini-game immediately, same
+    /// as before — but a system whose scene controller has registered a
+    /// physical-interaction gate (see NervousSystemMiniGameController)
+    /// won't actually fire MiniGameEvents.TriggerMiniGameComplete until
+    /// that physical condition is ALSO satisfied.
+    /// </summary>
+    private IEnumerator ResolveMiniGameCoroutine(BodySystem system, SocraticDialogueController controller)
+    {
+        MiniGameDialogueRecord record = SocraticMemoryStore.GetOrCreate(system);
+
+        string summary = null;
+        yield return _generator.GenerateDialogueSummary(record, s => summary = s);
+
+        SocraticMemoryStore.MarkResolved(system, controller.LastResolutionWasForcedReveal, summary);
+        Debug.Log($"[AITutor] 🎓 Socratic dialogue resolved for {system} " +
+                  $"({(controller.LastResolutionWasForcedReveal ? "guided reveal" : "earned")}). Summary: {summary}");
+
+        MiniGameCompletionGate.MarkDialogueResolved(system);
+    }
+
     // ── Query coroutine ───────────────────────────────────────────────────────
 
     private IEnumerator RunQueryCoroutine(string query)
@@ -449,6 +563,25 @@ public class AITutor : MonoBehaviour
         _interrupted  = false;
         string fullResponse = "";
         bool   ttsCompleted = false;
+
+        // ── Socratic dialogue setup ─────────────────────────────────────────
+        bool socraticMode = false;
+        SocraticDialogueController controller = null;
+        BodySystem activeSystem = default;
+        SocraticPhase phaseAtQuestionTime = default;
+        StudentUnderstanding lastUnderstanding = StudentUnderstanding.Partial;
+        string lastMisconceptionTag = null;
+
+        if (TryGetCurrentMiniGameSystem(out activeSystem) &&
+            (GameManager.Instance == null || !GameManager.Instance.IsSystemComplete(activeSystem)))
+        {
+            controller = GetOrCreateController(activeSystem);
+            if (!controller.IsResolved)
+            {
+                socraticMode = true;
+                phaseAtQuestionTime = controller.Phase;
+            }
+        }
 
         OnResponseStarted.Invoke(query);
         gestureSynchronizer?.OnResponseStart();
@@ -475,6 +608,10 @@ public class AITutor : MonoBehaviour
 
             speechRecognizer?.NotifyTTSStarted();
 
+            string phaseInstructions   = socraticMode ? controller.BuildPhaseInstructions() : null;
+            string dialogueHistory     = socraticMode ? SocraticMemoryStore.BuildHistoryBlock(activeSystem) : null;
+            string crossSystemMemory   = socraticMode ? SocraticMemoryStore.BuildCrossSystemMemoryBlock(activeSystem) : null;
+
             yield return _generator.GenerateStreamingResponse(
                 query,
                 hits,
@@ -497,7 +634,30 @@ public class AITutor : MonoBehaviour
                         fullResponse = full;
 
                     gestureSynchronizer?.ProcessResponse(fullResponse);
-                }
+                },
+                phaseInstructions: phaseInstructions,
+                dialogueHistoryBlock: dialogueHistory,
+                crossSystemMemoryBlock: crossSystemMemory,
+                requireAssessmentTag: socraticMode,
+                onAssessmentParsed: socraticMode
+                    ? (understanding, misconceptionTag) =>
+                    {
+                        // Only stash the values here — do NOT advance the FSM
+                        // yet. If this reply gets interrupted before TTS
+                        // finishes, AdvanceAfterAssessment must never have
+                        // run: otherwise a resolving turn (JustResolvedThisTurn)
+                        // that gets cut off would leave controller.IsResolved
+                        // permanently true without ever calling
+                        // MiniGameCompletionGate.MarkDialogueResolved — the
+                        // mini-game would silently strand forever, since
+                        // later turns would see IsResolved==true and skip
+                        // Socratic mode entirely, with nothing left to ever
+                        // fire completion. Advancing only happens below,
+                        // gated on ttsCompleted.
+                        lastUnderstanding    = understanding;
+                        lastMisconceptionTag = misconceptionTag;
+                    }
+                    : (Action<StudentUnderstanding, string>)null
             );
 
             if (!_interrupted)
@@ -514,6 +674,23 @@ public class AITutor : MonoBehaviour
             }
 
             ttsCompleted = !_interrupted;
+
+            if (socraticMode && ttsCompleted)
+            {
+                // Commit the FSM advance now — confirmed not interrupted.
+                // If interrupted, this whole turn is discarded: Phase stays
+                // exactly where it was, so the student's next attempt is
+                // evaluated fresh against the SAME question, as if the cut-off
+                // exchange never happened.
+                controller.AdvanceAfterAssessment(lastUnderstanding);
+                SocraticDialogueTelemetry.Update(activeSystem, controller, lastUnderstanding, lastMisconceptionTag);
+
+                SocraticMemoryStore.RecordTurn(activeSystem, new DialogueTurn(
+                    phaseAtQuestionTime, query, fullResponse, lastUnderstanding, lastMisconceptionTag));
+
+                if (controller.JustResolvedThisTurn)
+                    StartCoroutine(ResolveMiniGameCoroutine(activeSystem, controller));
+            }
         }
         finally
         {
@@ -706,11 +883,15 @@ public class AITutor : MonoBehaviour
             NarrationLines.Nervous,
             NarrationLines.Skeletal,
             NarrationLines.SteepIncline,
+            NarrationLines.Muscular,
             NarrationLines.Circulatory,
+            NarrationLines.ThinAir,
             NarrationLines.Respiratory,
+            NarrationLines.EnergyCrash,
             NarrationLines.Digestive,
             NarrationLines.Summit,
             NarrationLines.Homeostasis,
+            NarrationLines.Completion,
         };
 
         foreach (string line in lines)

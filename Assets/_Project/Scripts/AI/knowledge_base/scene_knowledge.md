@@ -10,36 +10,48 @@
 ## Trailhead Scene
 - Learner stands at the base of Mount Timpanogos, at the very start of the Summit Challenge.
 - Carla introduces herself here and explains that the learner can ask her questions at any time.
-- Goal: understand how the nervous and skeletal systems prepare the first step.
-- Tutor guidance example:
-  - "Trace the spine gesture and watch the signal travel to the legs."
+- This scene is narrative only — no hands-on interaction happens here. The nervous and skeletal
+  systems each get their own dedicated scene immediately after this one, where the actual
+  interactions live (see Nervous Scene and Skeletal Scene below).
+- Goal: understand that the nervous and skeletal systems are about to prepare the first step.
 
 ### What to highlight
-1. The brain sends the movement signal.
-2. The spinal cord carries that signal downward.
-3. The knee joints lock into place so the body can step safely.
+1. The brain is about to send the movement signal.
+2. The spinal cord will carry that signal downward.
+3. The knee joints will need to lock into place so the body can step safely.
 
 ### Short guidance examples
-- "The nervous system starts the movement and the skeleton gives it structure."
-- "Look at the glowing neurons and watch the signal move down the spine."
+- "In a moment you'll see the nervous system start the movement and the skeleton give it structure."
+- "The next two scenes show exactly how that first step gets prepared."
 
 ## Nervous Scene
-- Learner is focused specifically on the nervous system, right after leaving the Trailhead.
-- Goal: trace how the brain's signal travels down the spinal cord to the legs.
+- Learner stands facing a full nervous system: a brain connected through the spinal cord to
+  nerves that branch out to both arms and legs.
+- 6 glowing neurons are visible near the brain. Reaching out and touching one makes it flash and
+  disappear (it "discharges" — that neuron firing). Touching a neuron automatically sends a pulse
+  of light down the spinal cord — no tracing or gesture is needed, it travels on its own — and
+  once it reaches the base of the spine, it splits and continues down both legs at the same time.
+- Goal: touch all 6 neurons and watch the signal travel down the spine and split toward both legs.
 - Tutor guidance example:
-  - "Trace the signal with me, then look for the glowing neurons."
+  - "Touch each glowing neuron and watch the signal travel down your spine and split toward
+    both legs."
 
 ### What to highlight
-1. The brain sends an electrical signal, like a message telling the muscles it's time to move.
-2. The spinal cord is the pathway that signal travels down.
+1. Each neuron touched represents one neuron firing — real signals involve many neurons in a
+   network firing together, which is why there are several here instead of just one.
+2. The spinal cord is the shared pathway all of those signals travel down, branching into nerves
+   that reach the arms and legs.
 3. That signal has to arrive before the legs can act on it.
 
 ### Short guidance examples
-- "That's your nervous system sending the go-ahead to your legs."
-- "The signal has to travel all the way down the spine before your legs get the message."
+- "That flash is a neuron firing — watch the signal head down your spine and split toward
+  both legs."
+- "It takes a whole network of neurons firing together to send that message all the way down
+  to your legs."
 
 ## Skeletal Scene
-- Learner is focused specifically on the skeletal system, right after the Nervous scene.
+- Learner is focused specifically on the skeletal system, right after the Nervous scene, facing
+  a knee joint directly in front of them.
 - Goal: understand why joints need to lock into place before the first step.
 - Tutor guidance example:
   - "Watch the knee joints lock as you take your first step."
@@ -70,6 +82,23 @@
 ### Short guidance examples
 - "Your muscles and your heart are both speeding up together, right now, not one after another."
 - "The harder your legs work, the harder your heart has to work too."
+
+## Muscular Scene
+- Learner is inside the leg, looking at muscle fiber bundles up close.
+- Goal: contract the muscle fibers to drive the leg forward against the steeper slope.
+- Tutor guidance example:
+  - "Pull the fibers and watch the leg drive against the slope."
+
+### What to highlight
+1. Muscles move the body by contracting — pulling on the bones they're attached to, which the
+   skeletal scene just showed locking into place.
+2. Muscles need a steady supply of oxygen and glucose from the blood to keep contracting.
+3. On a steep climb, that demand rises fast — which is why the heart and lungs speed up at the
+   same moment the legs are working harder, not before or after.
+
+### Short guidance examples
+- "Every pull on that fiber is what drags the bone forward."
+- "Those fibers are burning through oxygen your heart is about to work harder to deliver."
 
 ## Circulatory Scene
 - Learner is inside the chest cavity with the heart in front of them.
@@ -118,18 +147,34 @@
 
 ## Summit Scene
 - Learner is back on the mountain trail and reaches the summit.
-- Goal: observe homeostasis as the body settles down.
+- Goal: complete the climb — the Homeostasis scene right after this is where the body settling
+  down is actually observed in detail (see below).
 - Tutor guidance example:
-  - "Watch the dashboard calm down as the body returns to balance."
+  - "You made it — every system just worked together to get you here."
 
 ### What to highlight
-1. Heart rate slows.
-2. Breathing becomes steadier.
-3. The body returns to homeostasis.
+1. Every system worked together to complete the climb.
+2. No single system could have done it alone.
 
 ### Short guidance examples
-- "Everything is slowing down and evening out again."
-- "That return to balance is homeostasis."
+- "You just felt every system in your body working as one team."
+
+## Homeostasis Scene
+- Learner is at the summit dashboard, watching heart rate and breathing settle back toward
+  resting baseline after the climb.
+- Goal: observe the body returning to balance and understand that this return to balance is
+  called homeostasis.
+- Tutor guidance example:
+  - "Watch the dashboard calm down as your heart rate and breathing settle back to normal."
+
+### What to highlight
+1. Heart rate slows back toward its resting rate.
+2. Breathing becomes steadier and less rapid.
+3. This active return to balance — not just "stopping" — is what homeostasis means.
+
+### Short guidance examples
+- "That settling you're watching is homeostasis — your body actively finding balance again."
+- "Even at rest, your body keeps working to hold everything steady."
 
 ## Important Tutor Behavior
 - Keep spoken responses short and clear.

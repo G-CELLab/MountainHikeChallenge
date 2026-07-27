@@ -34,25 +34,69 @@ tissues, which are built into organs, which work together as organ systems.
 - The digestive system turns food into glucose that enters the bloodstream.
 
 ## Trailhead Scene
-- The brain decides to move and sends a signal down the spinal cord to the legs.
-- The spine is a pathway for that signal.
-- Joints need to lock into position before the first step.
+- This is the narrative opening only — no hands-on interaction happens here. The nervous and
+  skeletal systems each get their own dedicated scene right after this one, where the actual
+  interactions live (see Nervous Scene and Skeletal Scene below).
+- The brain decides to move and is about to send a signal down the spinal cord to the legs.
+- Joints will need to lock into position before the first step.
 
 Short answer:
 The nervous system starts the movement, and the skeletal system keeps the body stable.
 
-## Muscular System
+## Nervous Scene
+- The learner stands facing a full nervous system: a brain connected through the spinal cord to
+  nerves that branch out to both arms and legs.
+- 6 glowing neurons are visible near the brain. The learner reaches out and touches each one.
+- When a neuron is touched, it flashes bright and then disappears (it has "discharged" — that
+  neuron has fired). Touching a neuron automatically sends a visible pulse of light from the brain
+  down the spinal cord — no tracing or gesture is needed, the signal travels on its own. Once it
+  reaches the base of the spine, it splits and continues down both legs at the same time.
+- The learner needs to touch all 6 neurons to complete the scene.
+- Tutor guidance example:
+  - "Reach out and touch each glowing neuron — watch the signal travel down your spine and split
+    toward both legs."
+- Teaching point for the tutor: each neuron the learner touches represents a single neuron firing.
+  Real movement signals are not one single spark — they involve many neurons in a network firing
+  together and passing the signal along, which is why there isn't just one neuron here but several.
+  The spinal cord is the shared pathway all of those signals travel down, branching out through
+  nerves to reach the arms and legs.
+
+Short answer:
+Touching each neuron fires it, sending a signal automatically down the spinal cord and splitting
+toward both legs — and it takes many neurons firing together to carry that "move" message all
+the way down.
+
+## Skeletal Scene
+- The learner is focused specifically on the skeletal system, right after the Nervous scene,
+  facing a knee joint directly in front of them.
+- Watch the knee joints lock into place — that's the frame the muscles will pull against on the
+  first step.
+- Tutor guidance example:
+  - "Watch the knee joints lock as you take your first step."
+
+Short answer:
+The skeleton locks joints into place so the muscles have something stable to pull against.
+
+## Muscular Scene
+- The learner is inside the leg, looking at muscle fiber bundles up close, right after the
+  Skeletal scene.
+- Goal: contract the muscle fibers to drive the leg forward against the steeper slope.
+- Tutor guidance example:
+  - "Pull the fibers and watch the leg drive against the slope."
 - Muscles are made of muscle fiber, bundled into skeletal muscle tissue, forming organs like
   the biceps and quadriceps.
-- Muscles move the body by contracting — pulling on the bones they're attached to.
+- Muscles move the body by contracting — pulling on the bones they're attached to, which the
+  Skeletal scene just showed locking into place.
 - Muscles need a steady supply of oxygen and glucose from the blood to keep contracting; on a
   steep climb, that demand rises fast, which is why the heart and lungs speed up at the same
   time the legs are working harder.
 
 Short answer:
-Muscles contract to move the legs, and they need oxygen and glucose from the blood to keep going.
+Muscles contract to move the legs, pulling on the bones they're attached to, and they need
+oxygen and glucose from the blood to keep going.
 
 ## Circulatory Scene
+- The learner is inside the chest cavity with the heart directly in front of them.
 - The heart is a pump, not a factory.
 - It moves existing blood through the body.
 - Faster pumping helps deliver oxygen to the working muscles more quickly.
@@ -62,6 +106,7 @@ Short answer:
 The heart pumps blood to the lungs and the muscles at the same time.
 
 ## Respiratory Scene
+- The learner is inside the lungs.
 - The diaphragm moves downward to expand the lungs.
 - Air flows into the lungs when space opens up.
 - Oxygen moves into the blood at the alveoli.
@@ -71,6 +116,7 @@ Short answer:
 The diaphragm pulls air in, and the alveoli move oxygen into the blood.
 
 ## Digestive Scene
+- The learner is inside the small intestine.
 - Most digestion happens in the small intestine, not the stomach.
 - Peristalsis moves food along the intestine.
 - Nutrients cross the intestinal wall and enter the bloodstream.
@@ -80,12 +126,23 @@ Short answer:
 The small intestine absorbs glucose into the blood so the muscles can keep working.
 
 ## Summit Scene
-- After the climb, the body slows down and returns toward balance.
-- Heart rate and breathing start to even out.
-- This return to balance is called homeostasis.
+- The learner is back on the mountain trail and reaches the summit — this is narrative only.
+  The Homeostasis scene right after this one is where the body settling down is actually
+  observed in detail (see below).
+- Every system worked together to complete the climb; no single system could have done it alone.
 
 Short answer:
-The body is returning to homeostasis after exercise.
+The body just completed the climb by every system working together, not in isolation.
+
+## Homeostasis Scene
+- The learner is at the summit dashboard, watching heart rate and breathing settle back toward
+  resting baseline after the climb.
+- Heart rate slows back toward its resting rate, and breathing becomes steadier and less rapid.
+- This active return to balance — not just "stopping" — is what homeostasis means.
+
+Short answer:
+Heart rate and breathing are actively settling back toward resting levels — that active return
+to balance is homeostasis.
 
 ## Vocabulary
 - Homeostasis: the body's way of keeping everything balanced (like temperature and energy)
@@ -129,11 +186,13 @@ If the learner asks about one body system, connect it to at least one other syst
 - "What does the diaphragm do?" -> "It moves down to help the lungs pull in air."
 - "Why do I need to breathe faster?" -> "Your muscles need more oxygen, and your blood has to carry it there."
 - "What should I do in the lungs?" -> "Push the diaphragm down and move oxygen into the blood."
-- "What should I do in the trailhead scene?" -> "Follow the spine gesture and watch the signal travel down to the legs."
+- "What should I do in the trailhead scene?" -> "Just watch for now — the nervous and skeletal scenes right after this one are where you'll interact."
+- "What should I do in the nervous scene?" -> "Touch each glowing neuron one at a time and watch the signal travel down your spine."
 - "What are my muscles doing right now?" -> "They're contracting to pull on your bones and move your legs, and they're burning through the oxygen your heart is sending them."
 
 ## Quick Review Questions
 - Which body system sends the signal to move?
+- Why does the Nervous scene have 6 neurons to touch instead of just one?
 - Which two systems work together to deliver oxygen to muscles?
 - Where does most digestion and nutrient absorption happen?
 - What is homeostasis?
