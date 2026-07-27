@@ -96,7 +96,8 @@ public class CombinedLogger : MonoBehaviour
         string other = AnatomyTutorSession.LastNote;
 
         if (logToConsole)
-            Debug.Log($"[CombinedLog] T={elapsed:F2}s | TS={timestamp} | Scene:{scene.SceneId} | Phase:{scene.Phase}");
+            Debug.Log($"[CombinedLog] T={elapsed:F2}s | TS={timestamp} | Scene:{scene.SceneId} | Phase:{scene.Phase} | " +
+                      $"Dialogue:{SocraticDialogueTelemetry.CurrentPhase}");
 
         if (logToCSV)
         {
@@ -117,7 +118,8 @@ public class CombinedLogger : MonoBehaviour
             csvWriter = new StreamWriter(csvFilePath, false, new UTF8Encoding(true)) { AutoFlush = false };
             csvWriter.WriteLine(
                 "Timestamp,Time(s),SceneId,Phase,SceneSummary,CurrentObjective,VisibleObjects,ProgressSummary," +
-                "User_Speech,AI_Speech,AI_Gesture,Other");
+                "User_Speech,AI_Speech,AI_Gesture,Other," +
+                "Dialogue_System,Dialogue_Phase,Evaluate_Round,ArticulateUpdated_Attempt,Last_Assessment,Last_Misconception");
         }
         catch (Exception ex)
         {
@@ -150,7 +152,13 @@ public class CombinedLogger : MonoBehaviour
                 $"{EscapeCsvField(userSpeech)}," +
                 $"{EscapeCsvField(aiSpeech)}," +
                 $"{EscapeCsvField(aiGesture)}," +
-                $"{EscapeCsvField(other)}");
+                $"{EscapeCsvField(other)}," +
+                $"{EscapeCsvField(SocraticDialogueTelemetry.CurrentSystem?.ToString() ?? "")}," +
+                $"{EscapeCsvField(SocraticDialogueTelemetry.CurrentPhase.ToString())}," +
+                $"{SocraticDialogueTelemetry.CurrentEvaluateRound}," +
+                $"{SocraticDialogueTelemetry.CurrentArticulateUpdatedAttempt}," +
+                $"{EscapeCsvField(SocraticDialogueTelemetry.LastAssessment.ToString())}," +
+                $"{EscapeCsvField(SocraticDialogueTelemetry.LastMisconceptionTag)}");
         }
         catch (Exception ex)
         {

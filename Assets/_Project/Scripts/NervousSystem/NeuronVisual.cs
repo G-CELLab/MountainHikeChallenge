@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using UnityEngine;
 
@@ -44,12 +45,23 @@ public class NeuronVisual : MonoBehaviour
     private float _timeSeed;
     private bool _discharged;
 
+    /// <summary>
+    /// Fires once this neuron's discharge animation has FINISHED (flash
+    /// faded, scaled to zero, object disabled) — not at the moment of
+    /// touch. Anything that needs to know "this neuron is really done,
+    /// visually" (e.g. a mini-game controller counting all 6 neurons
+    /// before allowing the scene to move on) should subscribe to this
+    /// rather than hooking Discharge() itself, which only marks the START
+    /// of the animation.
+    /// </summary>
+    public event Action<NeuronVisual> OnDischarged;
+
     private void Awake()
     {
         _mpb = new MaterialPropertyBlock();
         _baseLocalPos = transform.localPosition;
         _targetScale = transform.localScale; // capture the Inspector-set size BEFORE OnEnable zeroes it for the fade-in
-        _timeSeed = Random.Range(0f, 100f); // desyncs neurons so they don't all bob/pulse in lockstep
+        _timeSeed = UnityEngine.Random.Range(0f, 100f); // desyncs neurons so they don't all bob/pulse in lockstep
     }
 
     private void OnEnable()
@@ -154,5 +166,6 @@ public class NeuronVisual : MonoBehaviour
         }
 
         gameObject.SetActive(false);
+        OnDischarged?.Invoke(this);
     }
 }

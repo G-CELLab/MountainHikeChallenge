@@ -227,7 +227,10 @@ public class GameManager : MonoBehaviour
         mountainProgress = 0f;
         CurrentHikeState = HikeState.Hiking;
         AnatomyTutorSession.ResetToDefault();
+        SocraticMemoryStore.ResetAll();
+        SocraticDialogueTelemetry.Clear();
+        MiniGameCompletionGate.ResetAll();
         OnMountainProgressChanged?.Invoke(0f);
-        Debug.Log("[GameManager] Progress reset.");
+        Debug.Log("[GameManager] Progress reset — including Socratic dialogue memory and completion gates.");
     }
 }
