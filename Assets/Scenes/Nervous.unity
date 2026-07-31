@@ -519,10 +519,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: 5532699082006280693, guid: fb871a41e2474e145ab8e996aa3bf33c, type: 3}
-      propertyPath: 'm_Materials.Array.data[0]'
-      value: 
-      objectReference: {fileID: 2100000, guid: 74ca3e4951915ec49939c932f890fdae, type: 2}
     - target: {fileID: 6325557397673908256, guid: fb871a41e2474e145ab8e996aa3bf33c, type: 3}
       propertyPath: m_Name
       value: round platform
@@ -1663,6 +1659,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: -9006763763997969479, guid: 244c4c690defcf34285d356ec3bf4278, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: -3594621156485236991, guid: 244c4c690defcf34285d356ec3bf4278, type: 3}
+    - target: {fileID: -9006763763997969479, guid: 244c4c690defcf34285d356ec3bf4278, type: 3}
+      propertyPath: 'm_Materials.Array.data[1]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 604d382ecbf59074584a6ce94b820937, type: 2}
     - target: {fileID: -8679921383154817045, guid: 244c4c690defcf34285d356ec3bf4278, type: 3}
       propertyPath: m_LocalScale.x
       value: 1.1
@@ -1767,6 +1771,10 @@ PrefabInstance:
       propertyPath: m_ConstrainProportionsScale
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: -2986101835505852925, guid: 244c4c690defcf34285d356ec3bf4278, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: -3594621156485236991, guid: 244c4c690defcf34285d356ec3bf4278, type: 3}
     - target: {fileID: 919132149155446097, guid: 244c4c690defcf34285d356ec3bf4278, type: 3}
       propertyPath: m_Name
       value: spinal_cord_edit

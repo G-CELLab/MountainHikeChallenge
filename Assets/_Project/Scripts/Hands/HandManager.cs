@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.XR.Interaction.Toolkit.Interactors;
+using UnityEngine.XR.Interaction.Toolkit.Inputs.Readers;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine.XR.Hands;
@@ -12,7 +13,7 @@ using System;
 /// hand. Set Side in the inspector — Left hand = Left, Right hand = Right.
 ///
 /// Place this component directly on the "Left Hand" / "Right Hand" GameObject
-/// in the XR Origin Hands rig (the one that already has the Poke Interactor
+/// in the XR Origin Hands rig (the one that already has the Near-Far Interactor
 /// as a child) — that's the object EnsureInteractorReference() is designed to
 /// find things from.
 ///
@@ -33,7 +34,7 @@ public class HandManager : MonoBehaviour
     public bool isGrabbed = false;
 
     [Header("Interactor Source")]
-    [SerializeField] private XRPokeInteractor handInteractor;
+    [SerializeField] private NearFarInteractor handInteractor;
 
     [Header("Fist Settings")]
     [SerializeField] private float fistThreshold = 0.08f;
@@ -244,23 +245,27 @@ public class HandManager : MonoBehaviour
     {
         if (handInteractor == null) return;
 
-        // XRPokeInteractor has no selectInput / input-reader setup to disable
-        // (unlike NearFarInteractor, it doesn't extend XRBaseInputInteractor) —
-        // its native select behavior comes purely from physical poke depth
-        // against an XRPokeFilter, not from an input action. We still clear
-        // attachTransform since HandManager drives selection manually via
-        // StartManualInteraction/EndManualInteraction based on the fist gesture,
-        // not via the poke depth itself.
+        // NearFarInteractor extends XRBaseInputInteractor, so — unlike
+        // XRPokeInteractor — it natively reads select state from an input
+        // source (selectInput). We don't want any wired button/action to also
+        // drive selection here: HandManager is the sole source of truth for
+        // grab, driven entirely by the fist gesture via manual
+        // StartManualInteraction/EndManualInteraction in UpdateXRISelection().
+        // Setting the input source mode to Unused means the interactor's own
+        // select-from-input path never fires, so only our manual calls do.
+        handInteractor.selectInput.inputSourceMode = XRInputButtonReader.InputSourceMode.Unused;
+        handInteractor.activateInput.inputSourceMode = XRInputButtonReader.InputSourceMode.Unused;
+
+        // We still clear attachTransform since HandManager drives selection
+        // manually based on the fist gesture, not via whatever attach point
+        // NearFarInteractor would otherwise compute.
         handInteractor.attachTransform = null;
 
-        // Poke depth is a physical touch — if physics collision poke-selects an
-        // object on its own (independent of the fist gesture), that will race
-        // against the manual grab logic below. Disabling physics-layer overlap
-        // here would defeat the point of using a poke interactor at all, so
-        // this is left enabled: it's on the scene/prefab setup (poke filter
-        // depth, physics layers) to make sure only intended surfaces are
-        // poke-selectable, and on this script's UpdateXRISelection() to react
-        // to whichever selection state currently exists.
+        // NearFarInteractor selects via ray/sphere-cast hover detection rather
+        // than a physical poke touch, so there's no physics-layer poke depth
+        // to worry about racing the manual grab logic — hover candidates are
+        // read explicitly from interactablesHovered in UpdateXRISelection()
+        // below, and only acted on when the fist gesture is active.
     }
 
     private void FindVisualPalm()
@@ -289,9 +294,9 @@ public class HandManager : MonoBehaviour
     private void EnsureInteractorReference()
     {
         if (handInteractor != null && handInteractor.gameObject.activeInHierarchy) return;
-        handInteractor = GetComponentInChildren<XRPokeInteractor>(true);
+        handInteractor = GetComponentInChildren<NearFarInteractor>(true);
         if (handInteractor == null && transform.parent != null)
-            handInteractor = transform.parent.GetComponentInChildren<XRPokeInteractor>(true);
+            handInteractor = transform.parent.GetComponentInChildren<NearFarInteractor>(true);
     }
 
     // ── XRI Selection ─────────────────────────────────────────────────────────
