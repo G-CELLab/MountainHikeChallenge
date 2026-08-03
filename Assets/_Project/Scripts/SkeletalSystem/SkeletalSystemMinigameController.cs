@@ -9,18 +9,24 @@ using UnityEngine;
 /// NOTE: Patella auto-follow support has been stripped out for now to keep
 /// this simpler while the core drag/lock feel is being tuned. To bring it
 /// back later: re-add a Patella transform + loose/locked pose fields, and
-/// lerp its position/rotation between them based on
-/// Mathf.InverseLerp(startAngleDegrees, lockedAngleDegrees, _currentAngle)
-/// each Update — see project history for the exact prior implementation.
+/// lerp its position/rotation between them based on how close kneePivot's
+/// current rotation is to the locked rotation each Update — see project
+/// history for the exact prior implementation.
 ///
-/// HINGE DESIGN — important: the femur is NOT free-floating. It is a child
-/// of KneePivot, a transform sitting at the joint center. The only thing
-/// this script ever changes is KneePivot's rotation around a single
-/// authored hinge axis (the knee's flexion/extension axis) — so the femur
-/// physically cannot translate away from the tibia, twist sideways, or end
-/// up anywhere anatomically impossible. It can only swing between "bent"
-/// (the scene's starting pose) and "straight" (the locked pose), same as a
-/// real hinge joint.
+/// HINGE SETUP FIELDS (hingeAxisLocal, startAngleDegrees) are used ONLY to
+/// define the femur's starting bent pose, computed once in Awake. Locking
+/// is now checked separately via lockedYDegrees/lockedZDegrees below — see
+/// the Lock Detection section.
+///
+/// FREE-AIM DESIGN — while held, the femur points directly at the hand,
+/// full 3D, no single rotation axis constraining it. Every frame, KneePivot
+/// is rotated so that the femur (a rigid child sitting at a fixed local
+/// offset from the pivot — this script only ever rotates KneePivot, never
+/// moves it or the femur's local offset) points exactly along the line
+/// from the pivot to the hand. This trades anatomical accuracy (a real
+/// knee can only flex in one plane) for a drag feel that always visually
+/// follows the hand's position, in any direction, rather than only
+/// responding to motion within one fixed swing plane.
 ///
 /// Interaction flow:
 ///   - The student grips the tibia/fibula with one hand (it never moves —
@@ -29,23 +35,18 @@ using UnityEngine;
 ///     just require "some hand holding TibiaFibula" AND "a DIFFERENT hand
 ///     holding Femur" at the same time (see HandManager.isGrabbed /
 ///     GetHeldObjectName(), same pattern used elsewhere in the project).
-///   - While the femur is held, the script measures the holding hand's
-///     angular position around KneePivot (projected onto the hinge's plane
-///     of rotation) and converts the DELTA in that angle, since the moment
-///     of grab, into a change in the pivot's flexion angle — a standard
-///     "drag a hinge" technique. This means wherever the student's hand
-///     currently is when they grab, the joint starts responding smoothly
-///     from its current angle rather than snapping to match the hand.
-///     dragSensitivity scales that delta — see its tooltip if the hand and
-///     bone don't feel like they're moving at matching speed, which is
-///     common when the object's scale doesn't match a human arm's natural
-///     swing radius.
-///   - The lock check only runs while BOTH grips are active simultaneously
-///     (or always, if debugSkipStationaryGrip is on for testing). Once the
-///     pivot's angle is within tolerance of the locked angle (fully
-///     straight), it snaps exactly to that angle, becomes non-interactable,
-///     and the same MiniGameCompletionGate flow NervousSystemMiniGameController
-///     uses fires.
+///   - While the femur is held, every frame: target rotation = whatever
+///     rotates the femur's fixed local offset direction to point at the
+///     hand's current world position (Quaternion.FromToRotation). This is
+///     computed fresh every frame from scratch — no accumulation, no
+///     per-frame delta, so it can't drift.
+///   - The lock check compares KneePivot's LOCAL Euler Y and Z rotations
+///     independently against their own targets and tolerances (lockedYDegrees
+///     ± lockYTolerance, lockedZDegrees ± lockZTolerance) — X is left
+///     unconstrained. Once both are within tolerance, it snaps Y and Z
+///     exactly to their locked values (X stays wherever it is), becomes
+///     non-interactable, and the same MiniGameCompletionGate flow
+///     NervousSystemMiniGameController uses fires.
 /// </summary>
 public class SkeletalSystemMiniGameController : MonoBehaviour
 {
@@ -60,30 +61,44 @@ public class SkeletalSystemMiniGameController : MonoBehaviour
     [Tooltip("The pivot transform sitting at the joint center. Femur (and its collider/interactable) must be a CHILD of this transform, positioned at its correct rigid offset — this script only ever rotates this transform, never moves it.")]
     [SerializeField] private Transform kneePivot;
 
-    [Tooltip("Rotation axis for flexion/extension, in KneePivot's LOCAL space (before any runtime rotation is applied). Verify in-scene (Local pivot mode) and flip sign if the knee bends the wrong way.")]
+    [Tooltip("A child Transform positioned where the student actually grips the bone visually (e.g. mid-shaft) — NOT the femur mesh's own pivot/origin, which may sit at one end of the bone from how it was imported and rarely matches where a hand naturally holds it. This is the point that gets aimed at the hand. Must be a descendant of KneePivot so it rotates rigidly along with the femur. If left unassigned, falls back to the femur's own transform origin (the old, less predictable behavior).")]
+    [SerializeField] private Transform grabPointReference;
+
+    [Tooltip("Used ONLY to compute the start/locked target rotations below (via the same authored-axis convention as before) — NOT used to constrain live dragging, which is now free in any direction. Verify in-scene (Local pivot mode) and flip sign if the start/locked poses look wrong.")]
     [SerializeField] private Vector3 hingeAxisLocal = Vector3.forward;
 
-    [Tooltip("Pivot angle (degrees, around hingeAxisLocal) representing the knee fully LOCKED/straight. The pivot's authored rotation in the scene should already be this pose — i.e. this is normally 0.")]
-    [SerializeField] private float lockedAngleDegrees = 0f;
-
-    [Tooltip("Pivot angle representing the femur's starting BENT pose before the student does anything. Negative values bend one way, positive the other — set to match the imported asset's natural rest bend.")]
+    [Tooltip("Degrees (around hingeAxisLocal, relative to KneePivot's authored rotation in the scene) representing the femur's starting BENT pose. Same meaning as before — this defines the rotation applied at scene start.")]
     [SerializeField] private float startAngleDegrees = -45f;
 
-    [Tooltip("Degrees of tolerance around lockedAngleDegrees that counts as 'locked.'")]
-    [SerializeField] private float lockAngleTolerance = 4f;
+    [Header("Patella")]
+    [Tooltip("The patella (kneecap) bone Transform. Its world position/rotation is set every frame by lerping between patellaLoosePose and patellaLockPose — NOT parented under KneePivot, since a real patella slides rather than rotating rigidly with the femur.")]
+    [SerializeField] private Transform patellaBone;
 
-    [Header("Drag Feel")]
-    [Tooltip("Multiplier applied to the hand's angular movement before it's added to the pivot angle. 1 = the pivot rotates exactly as many degrees as the hand's bearing around the pivot changes. Raise this if the bone feels sluggish/under-responsive compared to hand movement; lower it if the bone whips around too fast for small hand movements. This exists because a human arm's natural swing radius rarely matches the object's actual scale, so a literal 1:1 angular match often doesn't feel right — tune by eye/feel.")]
-    [SerializeField] private float dragSensitivity = 1f;
+    [Tooltip("Authored reference pose (position/rotation) for the patella when the knee is loose/bent — i.e. anywhere far from locked. Same convention as patellaLockPose.")]
+    [SerializeField] private Transform patellaLoosePose;
 
-    [Tooltip("Distance (meters) from the hinge axis line below which the hand's bearing is completely untrusted (a near-zero-length projected vector's direction is essentially noise). Keep this small — it's a floor for true degeneracy, not a general safety margin.")]
-    [SerializeField] private float minHandDistanceFromAxis = 0.01f;
+    [Tooltip("Authored reference pose (position/rotation) for the patella when the knee is fully locked/straight. The patella snaps exactly here the instant the knee locks.")]
+    [SerializeField] private Transform patellaLockPose;
 
-    [Tooltip("Distance (meters) from the hinge axis line at which the hand's bearing is FULLY trusted. Between minHandDistanceFromAxis and this value, trust fades smoothly rather than cutting on/off — this is what prevents a visible shiver/stutter if your hand's natural path happens to pass near the axis mid-swing.")]
-    [SerializeField] private float axisConfidenceFadeDistance = 0.05f;
+    [Header("Lock Detection")]
+    [Tooltip("Target local Euler Y rotation (degrees) for the locked/straight pose.")]
+    [SerializeField] private float lockedYDegrees = 90f;
 
-    [Tooltip("Hard cap on how many degrees the pivot angle is allowed to change in a single second, regardless of what the raw hand-angle delta says. Guards against occasional hand-tracking glitches (common right as fingers close into a fist) causing a visible snap/reversal — a real drag never needs an extreme instantaneous jump, so anything faster than this is clamped rather than trusted outright.")]
-    [SerializeField] private float maxDegreesPerSecond = 720f;
+    [Tooltip("Degrees of tolerance around lockedYDegrees that counts as 'locked' for the Y axis.")]
+    [SerializeField] private float lockYTolerance = 5f;
+
+    [Tooltip("Target local Euler Z rotation (degrees) for the locked/straight pose.")]
+    [SerializeField] private float lockedZDegrees = 180f;
+
+    [Tooltip("Degrees of tolerance around lockedZDegrees that counts as 'locked' for the Z axis.")]
+    [SerializeField] private float lockZTolerance = 10f;
+
+    [Header("Natural Angle Limits")]
+    [Tooltip("If dragging pushes KneePivot's local Euler Y or Z outside these min/max ranges (anatomically implausible), the femur snaps back to its starting pose and stops responding to further hand movement for the REST of this grab — the student has to let go and re-grab to try again. X is intentionally left unconstrained, matching everything else in this script. Values are in Unity's signed Euler convention (-180 to 180), so double check against the live [FreeDrag] log (debugVisualizeHandDrag) rather than guessing — the same wraparound quirk that affects lock detection applies here too.")]
+    [SerializeField] private float minYDegrees = -120f;
+    [SerializeField] private float maxYDegrees = 120f;
+    [SerializeField] private float minZDegrees = -180f;
+    [SerializeField] private float maxZDegrees = 180f;
 
     [Header("Feedback")]
     [SerializeField] private AudioSource lockClickSound;
@@ -93,19 +108,23 @@ public class SkeletalSystemMiniGameController : MonoBehaviour
     [Tooltip("DEV/TEST ONLY. When enabled, the lock check treats the stationary grip (tibia/fibula) as always held, so you can test dragging AND locking the knee one-handed. Leave this OFF for real playtesting/builds — the two-hand requirement is intentional gameplay, not a bug.")]
     [SerializeField] private bool debugSkipStationaryGrip = false;
 
+    [Tooltip("DEV/TEST ONLY. Draws the pivot→hand line (red) and pivot→femur-direction line (yellow) in the Scene view each frame while the femur is held — they should overlap almost exactly. Leave OFF for real playtesting/builds.")]
+    [SerializeField] private bool debugVisualizeHandDrag = false;
+
+    [Tooltip("If the hand gets closer to the pivot than this (meters), the direction to aim at is undefined/noisy (normalizing a near-zero vector) — hold the current rotation rather than aiming at garbage. A real grab should never land this close to the joint center.")]
+    [SerializeField] private float minHandDistanceFromPivot = 0.02f;
+
     private bool _isLocked;
-    private float _currentAngle;
+    private bool _boundaryViolatedThisGrab;
 
-    // Drag-delta bookkeeping — captured fresh each time a new grab begins,
-    // so releasing and re-grabbing resumes smoothly from wherever the knee
-    // currently is instead of jumping.
-    private bool _wasFemurHeld;
-    private bool _hasHandAngleReference;
-    private float _previousHandAngle;
+    private Quaternion _baselineLocalRotation;   // KneePivot's authored rotation in the scene, as-is
+    private Quaternion _startLocalRotation;      // baseline + startAngleDegrees around hingeAxisLocal
 
-    private Vector3 _hingeAxisWorldCached;
-    private Vector3 _planeReferenceCached;
-    private Quaternion _baselineLocalRotation;
+    private Transform _femurTransform;
+    private bool _hasAimAnchor;
+    private Vector3 _femurLocalOffsetDir; // fixed direction (in KneePivot's local space) from pivot to the aim anchor — never changes since it's rigidly attached
+
+    private float _patellaBlendMaxDistance; // angular distance (degrees) from the start pose to the locked target, used to normalize the patella blend progress to 0..1
 
     private void Awake()
     {
@@ -117,14 +136,40 @@ public class SkeletalSystemMiniGameController : MonoBehaviour
             return;
         }
 
-        // The pivot's authored rotation in the scene IS the locked/straight
-        // pose (angle 0) — everything else is composed relative to it.
         _baselineLocalRotation = kneePivot.localRotation;
+        Vector3 axis = hingeAxisLocal.normalized;
+        _startLocalRotation = _baselineLocalRotation * Quaternion.AngleAxis(startAngleDegrees, axis);
 
-        _currentAngle = startAngleDegrees;
-        ApplyPivotAngle(_currentAngle);
+        kneePivot.localRotation = _startLocalRotation;
 
-        RecalculatePlaneReferences();
+        // Distance (in the same "X-agnostic" sense used every frame by
+        // UpdatePatellaBlend) from the starting pose to the locked target —
+        // computed once, here, so the blend has a stable denominator to
+        // normalize progress against. See UpdatePatellaBlend for why X is
+        // excluded from this comparison.
+        Vector3 startEuler = _startLocalRotation.eulerAngles;
+        Quaternion startBlendTarget = Quaternion.Euler(startEuler.x, lockedYDegrees, lockedZDegrees);
+        _patellaBlendMaxDistance = Quaternion.Angle(_startLocalRotation, startBlendTarget);
+        if (_patellaBlendMaxDistance < 0.01f) _patellaBlendMaxDistance = 0.01f; // guard divide-by-zero if start already equals the locked Y/Z
+
+        _femurTransform = FindMovingBoneTransform();
+
+        Transform aimAnchor = grabPointReference != null ? grabPointReference : _femurTransform;
+        if (aimAnchor != null)
+        {
+            // Cache as a direction relative to KneePivot, in KneePivot's
+            // local space — Transform.InverseTransformPoint(world) gives
+            // the local-space position, which is exactly what we need
+            // since the anchor may not be a DIRECT child of KneePivot (it
+            // could be nested a few levels under the femur).
+            Vector3 localPos = kneePivot.InverseTransformPoint(aimAnchor.position);
+            _femurLocalOffsetDir = localPos.normalized;
+            _hasAimAnchor = true;
+        }
+        else
+        {
+            Debug.LogWarning("[SkeletalSystemMiniGameController] Couldn't find the femur as a child of KneePivot by name, and no grabPointReference was assigned — dragging will do nothing.");
+        }
 
         if (debugSkipStationaryGrip)
             Debug.LogWarning("[SkeletalSystemMiniGameController] debugSkipStationaryGrip is ON — the two-hand lock requirement is bypassed for testing. Turn this off before a real playtest/build.");
@@ -152,158 +197,200 @@ public class SkeletalSystemMiniGameController : MonoBehaviour
         // gameplay always requires an actual hand on the tibia/fibula.
         if (debugSkipStationaryGrip) stationaryHeld = true;
 
-        UpdateHingeDrag(femurHeld, femurSide);
+        UpdateFreeDrag(stationaryHeld, femurHeld, femurSide);
+        UpdatePatellaBlend();
 
         // Only check for the snap while BOTH hands are engaged — one on the
         // tibia/fibula (stabilizing), one on the femur (guiding it into place).
         if (stationaryHeld && femurHeld)
             TryLock();
-
-        _wasFemurHeld = femurHeld;
     }
 
     /// <summary>
-    /// Converts the holding hand's angular position around KneePivot into a
-    /// change in the hinge angle, using a delta from the moment of grab
-    /// rather than an absolute mapping — this is what makes it feel like
-    /// dragging a hinge rather than teleporting the joint to match the hand.
-    /// dragSensitivity scales the raw angular delta; see its tooltip.
+    /// Rotates KneePivot every frame — from scratch, no accumulation — so
+    /// the femur points directly at the hand. No axis, no sensitivity, no
+    /// per-frame rate cap: wherever the hand is, that's where the femur
+    /// points, immediately.
+    ///
+    /// Requires BOTH the stationary grip (tibia/fibula) and the femur to be
+    /// held before any aiming happens — holding the femur alone does
+    /// nothing. This mirrors the two-hand requirement TryLock() already
+    /// enforced for locking, but now applies to the drag itself too.
     /// </summary>
-    private void UpdateHingeDrag(bool femurHeld, HandManager.Side side)
+    private void UpdateFreeDrag(bool stationaryHeld, bool femurHeld, HandManager.Side side)
     {
-        if (!femurHeld)
+        if (!stationaryHeld || !femurHeld)
         {
-            _hasHandAngleReference = false;
+            _boundaryViolatedThisGrab = false;
             return;
         }
+
+        if (!_hasAimAnchor || _boundaryViolatedThisGrab) return;
 
         var hand = HandManager.Get(side);
         if (hand == null) return;
 
-        bool valid = TryGetHandAngleAroundPivot(hand.PalmPosition, out float handAngleNow, out _, out float confidence);
-        if (!valid)
+        Vector3 toHand = hand.PalmPosition - kneePivot.position;
+        float distance = toHand.magnitude;
+
+        if (distance < minHandDistanceFromPivot)
         {
-            // True degeneracy only (inside minHandDistanceFromAxis) — even
-            // the confidence-faded blend below can't safely use this
-            // reading, so hold position exactly.
+            // Direction to a point essentially AT the pivot is undefined —
+            // hold the current rotation rather than aiming at noise.
+            if (debugVisualizeHandDrag) DrawFreeDragDebug(hand);
             return;
         }
 
-        if (!_hasHandAngleReference)
-        {
-            // Don't establish a fresh reference from a low-confidence
-            // reading, or the first real delta inherits a bad baseline.
-            if (confidence < 0.5f) return;
+        Vector3 targetDir = toHand / distance;
 
-            RecalculatePlaneReferences();
-            _previousHandAngle = handAngleNow;
-            _hasHandAngleReference = true;
-            return; // no meaningful delta on the very first valid frame
-        }
+        ApplyDirectAim(targetDir);
+        CheckAngleBoundaries();
 
-        // Incremental (previous-frame-to-now) rather than delta-from-grab-
-        // start — avoids any long-term drift and keeps the confidence fade
-        // below reacting to the hand's current position each frame.
-        float rawDeltaThisFrame = Mathf.DeltaAngle(_previousHandAngle, handAngleNow);
-        _previousHandAngle = handAngleNow;
-
-        float correctedDelta = rawDeltaThisFrame * dragSensitivity;
-        float target = _currentAngle + correctedDelta;
-
-        float lo = Mathf.Min(startAngleDegrees, lockedAngleDegrees);
-        float hi = Mathf.Max(startAngleDegrees, lockedAngleDegrees);
-        target = Mathf.Clamp(target, lo, hi);
-
-        // Fade the target smoothly toward "no change" as confidence drops,
-        // rather than snapping between trusted/untrusted — this is what
-        // eliminates the shiver if the hand's path grazes near the axis.
-        float blendedTarget = Mathf.Lerp(_currentAngle, target, confidence);
-
-        // Rate-limit how far _currentAngle is allowed to move in a single
-        // frame on top of that, regardless of what the blended target says —
-        // this is what actually rejects a one-frame tracking glitch, rather
-        // than just reducing its likelihood.
-        float maxStepThisFrame = maxDegreesPerSecond * Time.deltaTime;
-        _currentAngle = Mathf.MoveTowards(_currentAngle, blendedTarget, maxStepThisFrame);
-
-        ApplyPivotAngle(_currentAngle);
+        if (debugVisualizeHandDrag) DrawFreeDragDebug(hand);
     }
 
     /// <summary>
-    /// Signed angle (degrees) of the hand's position around the pivot,
-    /// measured within the plane perpendicular to the hinge axis, plus the
-    /// hand's distance from the axis (used only for the confidence fade
-    /// below) and a 0-1 confidence value based on that same distance.
-    /// Confidence is 0 below minHandDistanceFromAxis (true
-    /// degeneracy — angleDegrees is meaningless and the call returns false),
-    /// ramps linearly to 1 by axisConfidenceFadeDistance, and is 1 beyond
-    /// that. Only ever used for DIFFERENCES between two calls, so the exact
-    /// zero-reference direction doesn't matter as long as it's consistent
-    /// between frames — it's recalculated in RecalculatePlaneReferences()
-    /// whenever the pivot itself might have moved (scene start, each new
-    /// grab).
+    /// After aiming, checks KneePivot's local Euler Y and Z (converted to
+    /// Unity's signed -180..180 convention, since raw localEulerAngles
+    /// reports 0..360 and a naive comparison would break across that
+    /// wraparound) against minYDegrees/maxYDegrees and
+    /// minZDegrees/maxZDegrees. If either is outside its range, snaps back
+    /// to the starting pose and sets _boundaryViolatedThisGrab so
+    /// UpdateFreeDrag stops re-aiming for the rest of this grab — otherwise
+    /// the very next frame would just aim right back at the same
+    /// out-of-bounds hand position and immediately re-violate.
     /// </summary>
-    private bool TryGetHandAngleAroundPivot(Vector3 handWorldPos, out float angleDegrees, out float distance, out float confidence)
+    private void CheckAngleBoundaries()
     {
-        Vector3 toHand = handWorldPos - kneePivot.position;
-        Vector3 projected = Vector3.ProjectOnPlane(toHand, _hingeAxisWorldCached);
-        distance = projected.magnitude;
+        Vector3 euler = kneePivot.localEulerAngles;
+        float signedY = ToSignedDegrees(euler.y);
+        float signedZ = ToSignedDegrees(euler.z);
 
-        if (distance < minHandDistanceFromAxis)
-        {
-            angleDegrees = 0f;
-            confidence = 0f;
-            return false;
-        }
+        bool outOfBounds = signedY < minYDegrees || signedY > maxYDegrees
+                         || signedZ < minZDegrees || signedZ > maxZDegrees;
 
-        angleDegrees = Vector3.SignedAngle(_planeReferenceCached, projected, _hingeAxisWorldCached);
-        confidence = Mathf.Clamp01(Mathf.InverseLerp(minHandDistanceFromAxis, axisConfidenceFadeDistance, distance));
-        return true;
+        if (!outOfBounds) return;
+
+        Debug.LogWarning($"[SkeletalSystemMiniGameController] Angle boundary exceeded " +
+                          $"(y={signedY:F1}° [{minYDegrees:F1}, {maxYDegrees:F1}], " +
+                          $"z={signedZ:F1}° [{minZDegrees:F1}, {maxZDegrees:F1}]) — resetting to start pose.");
+
+        kneePivot.localRotation = _startLocalRotation;
+        _boundaryViolatedThisGrab = true;
+    }
+
+    /// <summary>Converts a raw 0..360 Euler component to Unity's signed -180..180 convention.</summary>
+    private static float ToSignedDegrees(float raw) => raw > 180f ? raw - 360f : raw;
+
+    /// <summary>
+    /// Slides the patella between patellaLoosePose and patellaLockPose based
+    /// on how close KneePivot's current rotation is to the locked target —
+    /// restoring the design the class summary describes as having been
+    /// stripped out, generalized to work with free-aim instead of a single
+    /// scalar bend angle.
+    ///
+    /// Progress is computed the same "X-agnostic" way as
+    /// _patellaBlendMaxDistance in Awake: compare the current rotation to a
+    /// MOVING target that has the locked Y/Z but keeps whatever X currently
+    /// is. Since X isn't part of the lock criteria, this means the
+    /// resulting angular distance reflects only the Y/Z mismatch — X
+    /// wandering during a normal drag doesn't distort the patella's slide
+    /// position. t=0 at the starting pose, t=1 once Y/Z reach the locked
+    /// target (clamped in between for anything reached via boundary resets
+    /// or an unusual drag path).
+    ///
+    /// Runs every frame regardless of whether the femur is currently being
+    /// held, so the patella reflects the leg's current bend state even
+    /// after the student lets go mid-drag — not just during active dragging.
+    /// </summary>
+    private void UpdatePatellaBlend()
+    {
+        if (patellaBone == null || patellaLoosePose == null || patellaLockPose == null) return;
+
+        Vector3 currentEuler = kneePivot.localEulerAngles;
+        Quaternion currentBlendTarget = Quaternion.Euler(currentEuler.x, lockedYDegrees, lockedZDegrees);
+        float currentDistance = Quaternion.Angle(kneePivot.localRotation, currentBlendTarget);
+
+        float t = 1f - Mathf.Clamp01(currentDistance / _patellaBlendMaxDistance);
+
+        patellaBone.position = Vector3.Lerp(patellaLoosePose.position, patellaLockPose.position, t);
+        patellaBone.rotation = Quaternion.Slerp(patellaLoosePose.rotation, patellaLockPose.rotation, t);
     }
 
     /// <summary>
-    /// Refreshes the cached world-space hinge axis and an arbitrary-but-
-    /// consistent reference direction in its rotation plane. Rotating a
-    /// transform around its own local axis doesn't change that axis's world
-    /// direction, so this only needs recalculating when the pivot's PARENT
-    /// might have moved (or, defensively, right before each new grab).
+    /// Computes and applies the KneePivot world rotation that points the
+    /// femur's fixed local offset direction at targetDir (world space).
+    /// Separated from UpdateFreeDrag purely for clarity/testability.
     /// </summary>
-    private void RecalculatePlaneReferences()
+    private void ApplyDirectAim(Vector3 targetDirWorld)
     {
-        _hingeAxisWorldCached = kneePivot.parent != null
-            ? kneePivot.parent.TransformDirection(hingeAxisLocal.normalized)
-            : hingeAxisLocal.normalized;
-
-        // Pick a reference vector guaranteed not parallel to the hinge axis.
-        Vector3 candidate = Vector3.Cross(_hingeAxisWorldCached, Vector3.up);
-        if (candidate.sqrMagnitude < 0.001f)
-            candidate = Vector3.Cross(_hingeAxisWorldCached, Vector3.forward);
-
-        _planeReferenceCached = candidate.normalized;
+        // We want kneePivot.rotation (world) such that:
+        //   kneePivot.rotation * _femurLocalOffsetDir == targetDirWorld
+        // Quaternion.FromToRotation(a, b) returns exactly the rotation that
+        // satisfies rotation * a == b, so this is a direct, one-line solve
+        // — no iteration, no accumulation, recomputed fresh every frame.
+        kneePivot.rotation = Quaternion.FromToRotation(_femurLocalOffsetDir, targetDirWorld);
     }
 
-    private void ApplyPivotAngle(float angleDegrees)
+    /// <summary>
+    /// DEV/TEST ONLY (gated by debugVisualizeHandDrag). Draws pivot→hand
+    /// (red) and pivot→femur (yellow) — they should overlap almost exactly
+    /// whenever the aim solve succeeded.
+    /// </summary>
+    private void DrawFreeDragDebug(HandManager hand)
     {
-        kneePivot.localRotation = _baselineLocalRotation * Quaternion.AngleAxis(angleDegrees, hingeAxisLocal.normalized);
+        Debug.DrawLine(kneePivot.position, hand.PalmPosition, Color.red);
+        Transform aimAnchor = grabPointReference != null ? grabPointReference : _femurTransform;
+        if (aimAnchor != null)
+            Debug.DrawLine(kneePivot.position, aimAnchor.position, Color.yellow);
+
+        Vector3 euler = kneePivot.localEulerAngles;
+        Debug.Log($"[FreeDrag] localEuler=({euler.x:F1}, {euler.y:F1}, {euler.z:F1})  " +
+                  $"yDiff={Mathf.DeltaAngle(euler.y, lockedYDegrees):F1}  zDiff={Mathf.DeltaAngle(euler.z, lockedZDegrees):F1}");
     }
 
+    /// <summary>
+    /// Checks KneePivot's LOCAL Euler Y and Z independently against their
+    /// own targets/tolerances — deliberately not a single combined angular
+    /// distance, since the two axes represent different things visually
+    /// (Y ≈ the main flexion swing, Z ≈ how "twisted" the bone looks) and
+    /// benefit from different tolerances. X is intentionally left
+    /// unconstrained here.
+    /// </summary>
     private void TryLock()
     {
-        if (Mathf.Abs(Mathf.DeltaAngle(_currentAngle, lockedAngleDegrees)) <= lockAngleTolerance)
+        Vector3 euler = kneePivot.localEulerAngles;
+        float yDiff = Mathf.DeltaAngle(euler.y, lockedYDegrees);
+        float zDiff = Mathf.DeltaAngle(euler.z, lockedZDegrees);
+
+        if (Mathf.Abs(yDiff) <= lockYTolerance && Mathf.Abs(zDiff) <= lockZTolerance)
             LockKnee();
     }
 
     private void LockKnee()
     {
         _isLocked = true;
-        _currentAngle = lockedAngleDegrees;
-        ApplyPivotAngle(_currentAngle);
+
+        // Snap Y and Z to their exact locked targets; leave X exactly where
+        // it currently is rather than forcing it to some assumed value.
+        Vector3 euler = kneePivot.localEulerAngles;
+        euler.y = lockedYDegrees;
+        euler.z = lockedZDegrees;
+        kneePivot.localEulerAngles = euler;
+
+        // Snap the patella exactly to its locked reference pose too, same
+        // as the femur — no reason for it to sit at some in-between blend
+        // value once the joint is actually locked.
+        if (patellaBone != null && patellaLockPose != null)
+        {
+            patellaBone.position = patellaLockPose.position;
+            patellaBone.rotation = patellaLockPose.rotation;
+        }
 
         // Prevent the now-locked femur from being picked up again — disable
         // whatever interactable component is driving grab detection for it.
-        var femurTransform = FindMovingBoneTransform();
-        var interactable = femurTransform != null
-            ? femurTransform.GetComponent<UnityEngine.XR.Interaction.Toolkit.Interactables.XRBaseInteractable>()
+        var interactable = _femurTransform != null
+            ? _femurTransform.GetComponent<UnityEngine.XR.Interaction.Toolkit.Interactables.XRBaseInteractable>()
             : null;
         if (interactable != null) interactable.enabled = false;
 
@@ -311,7 +398,7 @@ public class SkeletalSystemMiniGameController : MonoBehaviour
         // selectExited event, which would otherwise leave the "held" tint
         // stuck on — force both grip feedback components back to their base
         // color explicitly.
-        femurTransform?.GetComponent<KneeJointGripFeedback>()?.ForceReset();
+        _femurTransform?.GetComponent<KneeJointGripFeedback>()?.ForceReset();
         GetComponentInChildren<KneeJointGripFeedback>()?.ForceReset();
 
         if (lockClickSound != null) lockClickSound.Play();
@@ -323,9 +410,8 @@ public class SkeletalSystemMiniGameController : MonoBehaviour
 
     /// <summary>
     /// The femur is a child of KneePivot rather than a separately assigned
-    /// field (the whole point of the hinge design is that its transform is
-    /// never touched directly) — this just finds it by name for the
-    /// one-time interactable-disable step at lock time.
+    /// field (its transform is never touched directly by this script,
+    /// only KneePivot's is) — this finds it by name, once, in Awake.
     /// </summary>
     private Transform FindMovingBoneTransform()
     {

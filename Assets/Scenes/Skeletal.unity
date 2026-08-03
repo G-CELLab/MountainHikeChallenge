@@ -278,17 +278,25 @@ MonoBehaviour:
   stationaryGripName: tibia_bone
   movingGripName: femur_bone
   kneePivot: {fileID: 684257488}
-  hingeAxisLocal: {x: 0, y: 0, z: 1}
-  lockedAngleDegrees: 90
+  grabPointReference: {fileID: 932695159}
+  hingeAxisLocal: {x: 1, y: 0, z: 0}
   startAngleDegrees: 0
-  lockAngleTolerance: 4
-  dragSensitivity: 1
-  minHandDistanceFromAxis: 0.03
-  axisConfidenceFadeDistance: 0.05
-  maxDegreesPerSecond: 720
+  patellaBone: {fileID: 8699943526835275336}
+  patellaLoosePose: {fileID: 1907456967}
+  patellaLockPose: {fileID: 2114198896}
+  lockedYDegrees: 90
+  lockYTolerance: 5
+  lockedZDegrees: 180
+  lockZTolerance: 10
+  minYDegrees: 75
+  maxYDegrees: 105
+  minZDegrees: 15
+  maxZDegrees: 180
   lockClickSound: {fileID: 0}
   lockParticles: {fileID: 0}
-  debugSkipStationaryGrip: 1
+  debugSkipStationaryGrip: 0
+  debugVisualizeHandDrag: 1
+  minHandDistanceFromPivot: 0.02
 --- !u!4 &26854689
 Transform:
   m_ObjectHideFlags: 0
@@ -361,37 +369,6 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 4afe71e8e0366e645a2c94d8c5ad425e, type: 3}
---- !u!1 &482647881
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 482647882}
-  m_Layer: 0
-  m_Name: patella_loose_pose
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &482647882
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 482647881}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.19, y: -13.3, z: 15.3}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 543450652311957552}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &684257487
 GameObject:
   m_ObjectHideFlags: 0
@@ -784,6 +761,59 @@ MonoBehaviour:
   m_StartingInteractionStrengthFilters: []
   m_AutoFindParentInteractableInHierarchy: 0
   m_ParentInteractableObject: {fileID: 0}
+--- !u!1 &932695158
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 932695159}
+  - component: {fileID: 932695160}
+  m_Layer: 0
+  m_Name: Grab point
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &932695159
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 932695158}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0.21, y: -4.938, z: 0.524}
+  m_LocalScale: {x: 0.31941, y: 0.31940997, z: 0.31940997}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5952537248454959478}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &932695160
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 932695158}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 0
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1001 &954856104
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -898,7 +928,7 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 36e351a1cf9e2744392cbf93d71fa97d, type: 3}
---- !u!1 &1614081304
+--- !u!1 &1907456966
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -906,29 +936,60 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 1614081305}
+  - component: {fileID: 1907456967}
   m_Layer: 0
-  m_Name: patella_locke_pose
+  m_Name: patella_loose_pose
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &1614081305
+--- !u!4 &1907456967
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1614081304}
+  m_GameObject: {fileID: 1907456966}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.19, y: -13.3, z: 16}
+  m_LocalRotation: {x: 0.65646744, y: -0.13071072, z: -0.13217318, w: 0.731092}
+  m_LocalPosition: {x: -0.18999875, y: -10.11, z: 25.920004}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 543450652311957552}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 67.717, y: -74.092, z: -74.213}
+--- !u!1 &2114198895
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2114198896}
+  m_Layer: 0
+  m_Name: patella_lock_pose
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2114198896
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2114198895}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.78114426, y: -0.10380635, z: -0.1542044, w: 0.5960361}
+  m_LocalPosition: {x: -0.18999875, y: -15.03, z: 24.830002}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 543450652311957552}
+  m_LocalEulerAnglesHint: {x: 64.049, y: -123.562, z: -127.753}
 --- !u!33 &345438626267631889
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -947,7 +1008,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0.5, y: -0.5, z: -0.5, w: 0.5}
   m_LocalPosition: {x: 0.44598863, y: 0.787361, z: 0.86579514}
-  m_LocalScale: {x: 0.04, y: 0.04, z: 0.04}
+  m_LocalScale: {x: 0.03, y: 0.03, z: 0.03}
   m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 684257488}
@@ -955,8 +1016,8 @@ Transform:
   - {fileID: 6459201637443949826}
   - {fileID: 8385692996952384153}
   - {fileID: 977881592531336581}
-  - {fileID: 1614081305}
-  - {fileID: 482647882}
+  - {fileID: 2114198896}
+  - {fileID: 1907456967}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: -90, y: 0, z: -90}
 --- !u!1 &709947647286489736
@@ -1064,9 +1125,8 @@ GameObject:
   - component: {fileID: 6521097929473957841}
   - component: {fileID: 8385692996952384154}
   - component: {fileID: 8385692996952384155}
-  - component: {fileID: 8385692996952384157}
-  - component: {fileID: 8385692996952384156}
-  - component: {fileID: 8385692996952384158}
+  - component: {fileID: 8385692996952384160}
+  - component: {fileID: 8385692996952384159}
   m_Layer: 0
   m_Name: tibia_bone
   m_TagString: Untagged
@@ -1085,6 +1145,7 @@ GameObject:
   - component: {fileID: 8699943526835275336}
   - component: {fileID: 5671582789924707123}
   - component: {fileID: 6994642676222115283}
+  - component: {fileID: 8699943526835275337}
   m_Layer: 0
   m_Name: patella_bone
   m_TagString: Untagged
@@ -1185,7 +1246,8 @@ Transform:
   m_LocalPosition: {x: 0.41575992, y: 0.06591995, z: -0.018549189}
   m_LocalScale: {x: 0.03999999, y: 0.039999995, z: 0.039999995}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 932695159}
   m_Father: {fileID: 684257488}
   m_LocalEulerAnglesHint: {x: 6.399, y: -27.975, z: -3.388}
 --- !u!136 &5952537248454959481
@@ -1208,7 +1270,7 @@ CapsuleCollider:
   m_Enabled: 1
   serializedVersion: 2
   m_Radius: 1.14
-  m_Height: 6.251483
+  m_Height: 3.03
   m_Direction: 1
   m_Center: {x: 0.57, y: -4.94805, z: 0.7}
 --- !u!54 &5952537248454959482
@@ -1245,7 +1307,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 709947647286489736}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8ab28a20bb1b6394388b9e14109dce6c, type: 3}
   m_Name: 
@@ -1739,8 +1801,8 @@ CapsuleCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 1
-  m_ProvidesContacts: 1
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
   m_Radius: 1.01
@@ -1774,7 +1836,7 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
---- !u!114 &8385692996952384156
+--- !u!114 &8385692996952384159
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1783,15 +1845,19 @@ MonoBehaviour:
   m_GameObject: {fileID: 2311009732011718865}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8ab28a20bb1b6394388b9e14109dce6c, type: 3}
+  m_Script: {fileID: 11500000, guid: 617ed7b8481a5f344b4ce39bbe461d62, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::KneeJointGripFeedback
-  targetRenderer: {fileID: 0}
-  colorPropertyName: _Color
-  hoverTint: {r: 1, g: 0.95, b: 0.6, a: 1}
-  heldTint: {r: 1, g: 0.85, b: 0.2, a: 1}
-  tintStrength: 0.35
---- !u!114 &8385692996952384157
+  m_EditorClassIdentifier: Assembly-CSharp::GrabPointGlow
+  shaderName: Universal Render Pipeline/Lit
+  visualSizeMultiplier: 1.15
+  emissionColorProperty: _EmissionColor
+  glowColor: {r: 0.3, g: 0.9, b: 1, a: 1}
+  minIntensity: 0.25
+  maxIntensity: 2.2
+  pulseSpeed: 0.25
+  fadeDuration: 0.2
+  surfaceOpacity: 0.155
+--- !u!114 &8385692996952384160
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1800,9 +1866,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 2311009732011718865}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8a35f6cfbfba9b548aaa00d52cfe8a50, type: 3}
+  m_Script: {fileID: 11500000, guid: 0ad34abafad169848a38072baa96cdb2, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Unity.XR.Interaction.Toolkit::UnityEngine.XR.Interaction.Toolkit.Interactables.XRSimpleInteractable
+  m_EditorClassIdentifier: Unity.XR.Interaction.Toolkit::UnityEngine.XR.Interaction.Toolkit.Interactables.XRGrabInteractable
   m_InteractionManager: {fileID: 0}
   m_Colliders:
   - {fileID: 8385692996952384154}
@@ -1866,21 +1932,62 @@ MonoBehaviour:
   m_StartingInteractionStrengthFilters: []
   m_AutoFindParentInteractableInHierarchy: 0
   m_ParentInteractableObject: {fileID: 0}
---- !u!114 &8385692996952384158
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2311009732011718865}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 72b9ba7387e5a10428d4db368920a6c5, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::GrabFeatureTester
-  logToConsole: 1
-  showOnScreenGUI: 1
-  guiSlot: 0
+  m_AttachTransform: {fileID: 0}
+  m_SecondaryAttachTransform: {fileID: 0}
+  m_UseDynamicAttach: 1
+  m_MatchAttachPosition: 1
+  m_MatchAttachRotation: 1
+  m_SnapToColliderVolume: 1
+  m_ReinitializeDynamicAttachEverySingleGrab: 1
+  m_AttachEaseInTime: 0.15
+  m_MovementType: 1
+  m_PredictedVisualsTransform: {fileID: 0}
+  m_VelocityDamping: 1
+  m_VelocityScale: 1
+  m_AngularVelocityDamping: 1
+  m_AngularVelocityScale: 1
+  m_TrackPosition: 0
+  m_SmoothPosition: 0
+  m_SmoothPositionAmount: 8
+  m_TightenPosition: 0.1
+  m_TrackRotation: 0
+  m_SmoothRotation: 0
+  m_SmoothRotationAmount: 8
+  m_TightenRotation: 0.1
+  m_TrackScale: 0
+  m_SmoothScale: 0
+  m_SmoothScaleAmount: 8
+  m_TightenScale: 0.1
+  m_ThrowOnDetach: 0
+  m_ThrowSmoothingDuration: 0.25
+  m_ThrowSmoothingCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  m_ThrowVelocityScale: 1.5
+  m_ThrowAngularVelocityScale: 1
+  m_ForceGravityOnDetach: 0
+  m_UnparentTransformOnGrab: 0
+  m_RetainTransformParent: 1
+  m_StartingSingleGrabTransformers: []
+  m_StartingMultipleGrabTransformers: []
+  m_AddDefaultGrabTransformers: 1
+  m_FarAttachMode: 0
+  m_LimitLinearVelocity: 0
+  m_LimitAngularVelocity: 0
+  m_MaxLinearVelocityDelta: 10
+  m_MaxAngularVelocityDelta: 20
 --- !u!4 &8699943526835275336
 Transform:
   m_ObjectHideFlags: 0
@@ -1890,12 +1997,39 @@ Transform:
   m_GameObject: {fileID: 3040377482501126125}
   serializedVersion: 2
   m_LocalRotation: {x: 0.62025124, y: -0.18470043, z: -0.15341222, w: 0.74675226}
-  m_LocalPosition: {x: -0.35372972, y: -9.26, z: 25.642532}
+  m_LocalPosition: {x: 0, y: -9.26, z: 25.642532}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 543450652311957552}
   m_LocalEulerAnglesHint: {x: 60.421, y: -70.798, z: -68.176}
+--- !u!54 &8699943526835275337
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3040377482501126125}
+  serializedVersion: 5
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 0
+  m_IsKinematic: 1
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
