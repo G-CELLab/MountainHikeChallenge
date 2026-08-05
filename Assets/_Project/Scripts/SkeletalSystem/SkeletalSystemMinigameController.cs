@@ -46,11 +46,25 @@ using UnityEngine;
 ///     play every time this happens. The MiniGameCompletionGate flow
 ///     NervousSystemMiniGameController uses only fires once, on the very
 ///     first lock — later re-locks don't re-fire it.
+///   - Once locked, a new lock is only accepted again after the pose has
+///     actually swung away from the locked target by more than tolerance +
+///     relockDeadzoneDegrees on Y or Z — see _isArmedForLock in TryLock.
+///     Without this, an instant auto-regrab (trigger still held when the
+///     interactable re-enables) would immediately re-lock in place several
+///     times in a row before the student has moved anything.
 ///   - Once the knee has locked at least one time, it can no longer be
 ///     dragged PAST the locked angle in the extending direction (that
 ///     would be hyperextension) — see ClampBeyondLockedIfNeeded. It can
 ///     still be dragged the other way, back through the start pose and
 ///     into a squat (if patellaSquatPose is assigned), same as always.
+///   - CheckAngleBoundaries uses a wraparound-safe arc check (ArcExcessDegrees)
+///     rather than a naive signed-degree min/max comparison, because a
+///     locked/max value sitting at or near the ±180° seam (very common —
+///     "knee straight" is often authored as Z=180°) would otherwise turn a
+///     1° overshoot into an apparent ~194° violation the instant the angle
+///     wraps from +179° to -179°. boundaryGraceDegrees adds a small buffer
+///     on top of that so minor jitter right at the edge doesn't instantly
+///     reset the pose either.
 /// </summary>
 public class SkeletalSystemMiniGameController : MonoBehaviour
 {
@@ -87,7 +101,7 @@ public class SkeletalSystemMiniGameController : MonoBehaviour
     [Tooltip("OPTIONAL. Authored reference pose (position/rotation) for the patella when the knee bends PAST the starting pose in the opposite direction from locked — e.g. a squat. If left unassigned, bending that way just holds at patellaLoosePose (the original behavior).")]
     [SerializeField] private Transform patellaSquatPose;
 
-    [Tooltip("Degrees of Y rotation past the starting pose, in the squat direction, that correspond to patellaSquatPose being fully reached (blend t=1). Tune to match how far the knee can realistically bend into a squat. Only used if patellaSquatPose is assigned.")]
+    [Tooltip("Degrees of rotation past the starting pose, in the squat direction, that correspond to patellaSquatPose being fully reached (blend t=1). Tune to match how far the knee can realistically bend into a squat. Only used if patellaSquatPose is assigned.")]
     [SerializeField] private float squatBlendMaxDegrees = 45f;
 
     [Header("Lock Detection")]
@@ -103,12 +117,18 @@ public class SkeletalSystemMiniGameController : MonoBehaviour
     [Tooltip("Degrees of tolerance around lockedZDegrees that counts as 'locked' for the Z axis.")]
     [SerializeField] private float lockZTolerance = 10f;
 
+    [Tooltip("After a lock, Y or Z must swing at least (its own tolerance + this many degrees) away from the locked target before the system will accept another lock. Prevents an instant auto-regrab (controller trigger still held when the interactable re-enables) from immediately re-locking in place several times in a row before the student has actually moved anything.")]
+    [SerializeField] private float relockDeadzoneDegrees = 15f;
+
     [Header("Natural Angle Limits")]
-    [Tooltip("If dragging pushes KneePivot's local Euler Y or Z outside these min/max ranges (anatomically implausible), the femur snaps back to its starting pose and stops responding to further hand movement for the REST of this grab — the student has to let go and re-grab to try again. X is intentionally left unconstrained, matching everything else in this script. Values are in Unity's signed Euler convention (-180 to 180), so double check against the live [FreeDrag] log (debugVisualizeHandDrag) rather than guessing — the same wraparound quirk that affects lock detection applies here too.")]
+    [Tooltip("If dragging pushes KneePivot's local Euler Y or Z outside these min/max ranges (anatomically implausible), the femur snaps back to its starting pose and stops responding to further hand movement for the REST of this grab — the student has to let go and re-grab to try again. X is intentionally left unconstrained, matching everything else in this script. Values are in Unity's signed Euler convention (-180 to 180). The check itself (ArcExcessDegrees) is wraparound-safe, so a limit sitting at/near ±180° (very common when the locked/straight pose is authored as 180°) won't misfire the way a naive comparison would.")]
     [SerializeField] private float minYDegrees = -120f;
     [SerializeField] private float maxYDegrees = 120f;
     [SerializeField] private float minZDegrees = -180f;
     [SerializeField] private float maxZDegrees = 180f;
+
+    [Tooltip("Extra degrees of slack allowed past minYDegrees/maxYDegrees/minZDegrees/maxZDegrees before the anatomical-plausibility reset actually fires — a small buffer so tiny overshoot or jitter right at the edge (e.g. right after a lock sitting at that same edge) doesn't instantly reset the pose.")]
+    [SerializeField] private float boundaryGraceDegrees = 3f;
 
     [Header("Feedback")]
     [SerializeField] private AudioSource lockClickSound;
@@ -129,6 +149,12 @@ public class SkeletalSystemMiniGameController : MonoBehaviour
     // does nothing while this is true. This is NOT a permanent "done"
     // state — it clears itself once the femur is grabbable again.
     private bool _isFrozenAfterLock;
+
+    // Gates TryLock. Set false the instant a lock happens; only set back to
+    // true once Y or Z has swung past tolerance + relockDeadzoneDegrees away
+    // from the locked target. Starts true so the very first lock isn't
+    // blocked (the start pose is already far from locked by construction).
+    private bool _isArmedForLock = true;
 
     // True forever after the very first lock. Once true:
     //   - MarkInteractionComplete is never called again on subsequent locks.
@@ -285,15 +311,15 @@ public class SkeletalSystemMiniGameController : MonoBehaviour
     }
 
     /// <summary>
-    /// After aiming, checks KneePivot's local Euler Y and Z (converted to
-    /// Unity's signed -180..180 convention, since raw localEulerAngles
-    /// reports 0..360 and a naive comparison would break across that
-    /// wraparound) against minYDegrees/maxYDegrees and
-    /// minZDegrees/maxZDegrees. If either is outside its range, snaps back
-    /// to the starting pose and sets _boundaryViolatedThisGrab so
-    /// UpdateFreeDrag stops re-aiming for the rest of this grab — otherwise
-    /// the very next frame would just aim right back at the same
-    /// out-of-bounds hand position and immediately re-violate.
+    /// After aiming, checks KneePivot's local Euler Y and Z against
+    /// minYDegrees/maxYDegrees and minZDegrees/maxZDegrees using
+    /// ArcExcessDegrees (wraparound-safe — see class summary), with
+    /// boundaryGraceDegrees of slack added on top. If either is outside its
+    /// range beyond that grace, snaps back to the starting pose and sets
+    /// _boundaryViolatedThisGrab so UpdateFreeDrag stops re-aiming for the
+    /// rest of this grab — otherwise the very next frame would just aim
+    /// right back at the same out-of-bounds hand position and immediately
+    /// re-violate.
     /// </summary>
     private void CheckAngleBoundaries()
     {
@@ -301,27 +327,61 @@ public class SkeletalSystemMiniGameController : MonoBehaviour
         float signedY = ToSignedDegrees(euler.y);
         float signedZ = ToSignedDegrees(euler.z);
 
-        bool yTooLow = signedY < minYDegrees;
-        bool yTooHigh = signedY > maxYDegrees;
-        bool zTooLow = signedZ < minZDegrees;
-        bool zTooHigh = signedZ > maxZDegrees;
+        float yExcess = ArcExcessDegrees(signedY, minYDegrees, maxYDegrees, out bool yBelowMin);
+        float zExcess = ArcExcessDegrees(signedZ, minZDegrees, maxZDegrees, out bool zBelowMin);
 
-        if (!yTooLow && !yTooHigh && !zTooLow && !zTooHigh) return;
+        bool yViolated = yExcess > boundaryGraceDegrees;
+        bool zViolated = zExcess > boundaryGraceDegrees;
+
+        if (!yViolated && !zViolated) return;
 
         // Only report the axis/axes that actually caused this, with how far
-        // past the limit they went, rather than always dumping both Y and Z
-        // regardless of which one was the actual culprit.
+        // past the limit (beyond the grace buffer) they went.
         var reasons = new System.Collections.Generic.List<string>();
-        if (yTooLow) reasons.Add($"Y={signedY:F1}° is below min {minYDegrees:F1}° (by {minYDegrees - signedY:F1}°)");
-        if (yTooHigh) reasons.Add($"Y={signedY:F1}° is above max {maxYDegrees:F1}° (by {signedY - maxYDegrees:F1}°)");
-        if (zTooLow) reasons.Add($"Z={signedZ:F1}° is below min {minZDegrees:F1}° (by {minZDegrees - signedZ:F1}°)");
-        if (zTooHigh) reasons.Add($"Z={signedZ:F1}° is above max {maxZDegrees:F1}° (by {signedZ - maxZDegrees:F1}°)");
+        if (yViolated) reasons.Add(yBelowMin
+            ? $"Y={signedY:F1}° is below min {minYDegrees:F1}° (by {yExcess:F1}°, grace {boundaryGraceDegrees:F1}°)"
+            : $"Y={signedY:F1}° is above max {maxYDegrees:F1}° (by {yExcess:F1}°, grace {boundaryGraceDegrees:F1}°)");
+        if (zViolated) reasons.Add(zBelowMin
+            ? $"Z={signedZ:F1}° is below min {minZDegrees:F1}° (by {zExcess:F1}°, grace {boundaryGraceDegrees:F1}°)"
+            : $"Z={signedZ:F1}° is above max {maxZDegrees:F1}° (by {zExcess:F1}°, grace {boundaryGraceDegrees:F1}°)");
 
         Debug.LogWarning($"[SkeletalSystemMiniGameController] Angle boundary exceeded — " +
                           $"{string.Join("; ", reasons)} — resetting to start pose.");
 
         kneePivot.localRotation = _startLocalRotation;
         _boundaryViolatedThisGrab = true;
+    }
+
+    /// <summary>
+    /// Wraparound-safe replacement for a naive "signedValue &lt; min ||
+    /// signedValue &gt; max" check. Naive comparison breaks the instant the
+    /// tracked angle crosses the ±180° seam — e.g. sitting right at
+    /// Z=180° (a very common "leg straight" value) and drifting 1° further
+    /// reads as -179°, which a naive check sees as ~194° below a min of
+    /// 15° instead of ~1° past max. This walks the angle around the circle
+    /// starting at min and measures how far outside the [min,max] arc it
+    /// landed, picking whichever edge (min or max) is actually closer so
+    /// the reported excess/direction reflects the real, small deviation
+    /// rather than an artifact of where the wraparound happens to fall.
+    /// Returns a value &lt;= 0 if inside the allowed arc (not violated),
+    /// otherwise the number of degrees past whichever edge is closer.
+    /// </summary>
+    private static float ArcExcessDegrees(float signedValue, float min, float max, out bool belowMin)
+    {
+        float rangeSize = max - min;
+        float arcPosition = Mathf.Repeat(signedValue - min, 360f); // 0 at min, increasing toward max
+
+        if (arcPosition <= rangeSize)
+        {
+            belowMin = false;
+            return arcPosition - rangeSize; // <= 0
+        }
+
+        float distancePastMax = arcPosition - rangeSize;
+        float distanceBelowMin = 360f - arcPosition;
+
+        belowMin = distanceBelowMin < distancePastMax;
+        return belowMin ? distanceBelowMin : distancePastMax;
     }
 
     /// <summary>
@@ -360,6 +420,13 @@ public class SkeletalSystemMiniGameController : MonoBehaviour
                            && Mathf.Abs(lockToCurrentZ) > 0.01f;
 
         if (!overExtendedY && !overExtendedZ) return;
+
+        var reasons = new System.Collections.Generic.List<string>();
+        if (overExtendedY) reasons.Add($"Y={euler.y:F1}° went {lockToCurrentY:F1}° past locked {lockedYDegrees:F1}°");
+        if (overExtendedZ) reasons.Add($"Z={euler.z:F1}° went {lockToCurrentZ:F1}° past locked {lockedZDegrees:F1}°");
+
+        Debug.Log($"[SkeletalSystemMiniGameController] Post-lock hyperextension stop — " +
+                   $"{string.Join("; ", reasons)} — clamping to locked value.");
 
         if (overExtendedY) euler.y = lockedYDegrees;
         if (overExtendedZ) euler.z = lockedZDegrees;
@@ -472,7 +539,8 @@ public class SkeletalSystemMiniGameController : MonoBehaviour
 
         Vector3 euler = kneePivot.localEulerAngles;
         Debug.Log($"[FreeDrag] localEuler=({euler.x:F1}, {euler.y:F1}, {euler.z:F1})  " +
-                  $"yDiff={Mathf.DeltaAngle(euler.y, lockedYDegrees):F1}  zDiff={Mathf.DeltaAngle(euler.z, lockedZDegrees):F1}");
+                  $"yDiff={Mathf.DeltaAngle(euler.y, lockedYDegrees):F1}  zDiff={Mathf.DeltaAngle(euler.z, lockedZDegrees):F1}  " +
+                  $"armed={_isArmedForLock}");
     }
 
     /// <summary>
@@ -482,12 +550,30 @@ public class SkeletalSystemMiniGameController : MonoBehaviour
     /// (Y ≈ the main flexion swing, Z ≈ how "twisted" the bone looks) and
     /// benefit from different tolerances. X is intentionally left
     /// unconstrained here.
+    ///
+    /// Gated by _isArmedForLock: right after a lock, this is false, and
+    /// stays false until Y or Z has swung past tolerance +
+    /// relockDeadzoneDegrees away from the locked target — only then is a
+    /// new lock accepted. Without this, an instant auto-regrab (trigger
+    /// still down when the interactable re-enables after the previous
+    /// lock) would see the pose still within tolerance and immediately
+    /// re-lock, over and over, before the student has moved anything.
     /// </summary>
     private void TryLock()
     {
         Vector3 euler = kneePivot.localEulerAngles;
         float yDiff = Mathf.DeltaAngle(euler.y, lockedYDegrees);
         float zDiff = Mathf.DeltaAngle(euler.z, lockedZDegrees);
+
+        if (!_isArmedForLock)
+        {
+            if (Mathf.Abs(yDiff) > lockYTolerance + relockDeadzoneDegrees ||
+                Mathf.Abs(zDiff) > lockZTolerance + relockDeadzoneDegrees)
+            {
+                _isArmedForLock = true;
+            }
+            return;
+        }
 
         if (Mathf.Abs(yDiff) <= lockYTolerance && Mathf.Abs(zDiff) <= lockZTolerance)
             LockKnee();
@@ -521,6 +607,7 @@ public class SkeletalSystemMiniGameController : MonoBehaviour
 
         bool isFirstLock = !_hasLockedAtLeastOnce;
         _hasLockedAtLeastOnce = true;
+        _isArmedForLock = false; // must swing away past the deadzone before another lock is accepted
 
         if (isFirstLock && !_hasCompletedOnce)
         {
