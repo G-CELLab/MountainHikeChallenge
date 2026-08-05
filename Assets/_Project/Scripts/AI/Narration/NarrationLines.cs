@@ -92,7 +92,7 @@ public static class NarrationLines
         "Take a look around — what do you see in front of you?";
 
     public static readonly string Skeletal =
-        "What do you notice about the joint right in front of you?";
+        "What does this part of the skeleton look like to you?";
 
     public static readonly string Muscular =
         "Take a close look — what do you see here inside the leg?";

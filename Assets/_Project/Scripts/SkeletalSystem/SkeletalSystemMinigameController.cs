@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 /// <summary>
@@ -5,13 +6,6 @@ using UnityEngine;
 /// single knee joint made of two pieces right now: TibiaFibula (static
 /// anchor — held but never moves) and Femur (the piece the student swings
 /// into place).
-///
-/// NOTE: Patella auto-follow support has been stripped out for now to keep
-/// this simpler while the core drag/lock feel is being tuned. To bring it
-/// back later: re-add a Patella transform + loose/locked pose fields, and
-/// lerp its position/rotation between them based on how close kneePivot's
-/// current rotation is to the locked rotation each Update — see project
-/// history for the exact prior implementation.
 ///
 /// HINGE SETUP FIELDS (hingeAxisLocal, startAngleDegrees) are used ONLY to
 /// define the femur's starting bent pose, computed once in Awake. Locking
@@ -44,9 +38,19 @@ using UnityEngine;
 ///     independently against their own targets and tolerances (lockedYDegrees
 ///     ± lockYTolerance, lockedZDegrees ± lockZTolerance) — X is left
 ///     unconstrained. Once both are within tolerance, it snaps Y and Z
-///     exactly to their locked values (X stays wherever it is), becomes
-///     non-interactable, and the same MiniGameCompletionGate flow
-///     NervousSystemMiniGameController uses fires.
+///     exactly to their locked values (X stays wherever it is).
+///   - LOCKING IS REPEATABLE. Each time the knee locks, the femur's current
+///     grab is force-released (so the student has to physically re-grab
+///     it) and the interactable is re-enabled a frame later so it CAN be
+///     re-grabbed, dragged away, and locked again. The lock sound/particles
+///     play every time this happens. The MiniGameCompletionGate flow
+///     NervousSystemMiniGameController uses only fires once, on the very
+///     first lock — later re-locks don't re-fire it.
+///   - Once the knee has locked at least one time, it can no longer be
+///     dragged PAST the locked angle in the extending direction (that
+///     would be hyperextension) — see ClampBeyondLockedIfNeeded. It can
+///     still be dragged the other way, back through the start pose and
+///     into a squat (if patellaSquatPose is assigned), same as always.
 /// </summary>
 public class SkeletalSystemMiniGameController : MonoBehaviour
 {
@@ -79,6 +83,12 @@ public class SkeletalSystemMiniGameController : MonoBehaviour
 
     [Tooltip("Authored reference pose (position/rotation) for the patella when the knee is fully locked/straight. The patella snaps exactly here the instant the knee locks.")]
     [SerializeField] private Transform patellaLockPose;
+
+    [Tooltip("OPTIONAL. Authored reference pose (position/rotation) for the patella when the knee bends PAST the starting pose in the opposite direction from locked — e.g. a squat. If left unassigned, bending that way just holds at patellaLoosePose (the original behavior).")]
+    [SerializeField] private Transform patellaSquatPose;
+
+    [Tooltip("Degrees of Y rotation past the starting pose, in the squat direction, that correspond to patellaSquatPose being fully reached (blend t=1). Tune to match how far the knee can realistically bend into a squat. Only used if patellaSquatPose is assigned.")]
+    [SerializeField] private float squatBlendMaxDegrees = 45f;
 
     [Header("Lock Detection")]
     [Tooltip("Target local Euler Y rotation (degrees) for the locked/straight pose.")]
@@ -114,7 +124,21 @@ public class SkeletalSystemMiniGameController : MonoBehaviour
     [Tooltip("If the hand gets closer to the pivot than this (meters), the direction to aim at is undefined/noisy (normalizing a near-zero vector) — hold the current rotation rather than aiming at garbage. A real grab should never land this close to the joint center.")]
     [SerializeField] private float minHandDistanceFromPivot = 0.02f;
 
-    private bool _isLocked;
+    // True only for the one-frame window right after a lock, while we force
+    // the grab to release and wait to re-enable the interactable. Update()
+    // does nothing while this is true. This is NOT a permanent "done"
+    // state — it clears itself once the femur is grabbable again.
+    private bool _isFrozenAfterLock;
+
+    // True forever after the very first lock. Once true:
+    //   - MarkInteractionComplete is never called again on subsequent locks.
+    //   - ClampBeyondLockedIfNeeded starts enforcing the "no hyperextension
+    //     past locked" limit on every drag.
+    private bool _hasLockedAtLeastOnce;
+
+    // True forever after the minigame's one-time completion has fired.
+    private bool _hasCompletedOnce;
+
     private bool _boundaryViolatedThisGrab;
 
     private Quaternion _baselineLocalRotation;   // KneePivot's authored rotation in the scene, as-is
@@ -177,7 +201,11 @@ public class SkeletalSystemMiniGameController : MonoBehaviour
 
     private void Update()
     {
-        if (_isLocked || kneePivot == null) return;
+        if (kneePivot == null) return;
+
+        // Waiting out the one-frame force-release window from a lock — see
+        // ReleaseGripAndReenable. Nothing to do until that clears.
+        if (_isFrozenAfterLock) return;
 
         bool stationaryHeld = false;
         bool femurHeld = false;
@@ -246,6 +274,13 @@ public class SkeletalSystemMiniGameController : MonoBehaviour
         ApplyDirectAim(targetDir);
         CheckAngleBoundaries();
 
+        // Only worth enforcing the "no hyperextension past locked" limit if
+        // the wide anatomical-plausibility reset above didn't already fire
+        // this frame (that reset already sends things back to the start
+        // pose, which makes clamping to locked redundant/conflicting).
+        if (!_boundaryViolatedThisGrab)
+            ClampBeyondLockedIfNeeded();
+
         if (debugVisualizeHandDrag) DrawFreeDragDebug(hand);
     }
 
@@ -266,17 +301,69 @@ public class SkeletalSystemMiniGameController : MonoBehaviour
         float signedY = ToSignedDegrees(euler.y);
         float signedZ = ToSignedDegrees(euler.z);
 
-        bool outOfBounds = signedY < minYDegrees || signedY > maxYDegrees
-                         || signedZ < minZDegrees || signedZ > maxZDegrees;
+        bool yTooLow = signedY < minYDegrees;
+        bool yTooHigh = signedY > maxYDegrees;
+        bool zTooLow = signedZ < minZDegrees;
+        bool zTooHigh = signedZ > maxZDegrees;
 
-        if (!outOfBounds) return;
+        if (!yTooLow && !yTooHigh && !zTooLow && !zTooHigh) return;
 
-        Debug.LogWarning($"[SkeletalSystemMiniGameController] Angle boundary exceeded " +
-                          $"(y={signedY:F1}° [{minYDegrees:F1}, {maxYDegrees:F1}], " +
-                          $"z={signedZ:F1}° [{minZDegrees:F1}, {maxZDegrees:F1}]) — resetting to start pose.");
+        // Only report the axis/axes that actually caused this, with how far
+        // past the limit they went, rather than always dumping both Y and Z
+        // regardless of which one was the actual culprit.
+        var reasons = new System.Collections.Generic.List<string>();
+        if (yTooLow) reasons.Add($"Y={signedY:F1}° is below min {minYDegrees:F1}° (by {minYDegrees - signedY:F1}°)");
+        if (yTooHigh) reasons.Add($"Y={signedY:F1}° is above max {maxYDegrees:F1}° (by {signedY - maxYDegrees:F1}°)");
+        if (zTooLow) reasons.Add($"Z={signedZ:F1}° is below min {minZDegrees:F1}° (by {minZDegrees - signedZ:F1}°)");
+        if (zTooHigh) reasons.Add($"Z={signedZ:F1}° is above max {maxZDegrees:F1}° (by {signedZ - maxZDegrees:F1}°)");
+
+        Debug.LogWarning($"[SkeletalSystemMiniGameController] Angle boundary exceeded — " +
+                          $"{string.Join("; ", reasons)} — resetting to start pose.");
 
         kneePivot.localRotation = _startLocalRotation;
         _boundaryViolatedThisGrab = true;
+    }
+
+    /// <summary>
+    /// Once the knee has locked at least one time, this prevents dragging
+    /// it PAST the locked angle any further in the extending direction
+    /// (hyperextension) — the locked pose becomes a hard stop from then on.
+    /// Bending the other way, back through the start pose and into a squat,
+    /// is untouched by this and still works exactly as before.
+    ///
+    /// Checked independently per axis (Y and Z), same convention as
+    /// TryLock/CheckAngleBoundaries: figure out which direction "locked" is
+    /// from the start pose on that axis, then see if the current value has
+    /// gone further than locked in that same direction. If so, clamp that
+    /// axis back to exactly the locked value rather than resetting the
+    /// whole pose — this should feel like a physical stop, not a snap-away.
+    /// </summary>
+    private void ClampBeyondLockedIfNeeded()
+    {
+        if (!_hasLockedAtLeastOnce) return;
+
+        Vector3 startEuler = _startLocalRotation.eulerAngles;
+        Vector3 euler = kneePivot.localEulerAngles;
+
+        float startToLockY = Mathf.DeltaAngle(startEuler.y, lockedYDegrees);
+        float startToLockZ = Mathf.DeltaAngle(startEuler.z, lockedZDegrees);
+
+        float lockToCurrentY = Mathf.DeltaAngle(lockedYDegrees, euler.y);
+        float lockToCurrentZ = Mathf.DeltaAngle(lockedZDegrees, euler.z);
+
+        bool overExtendedY = Mathf.Abs(startToLockY) > 0.01f
+                           && Mathf.Sign(lockToCurrentY) == Mathf.Sign(startToLockY)
+                           && Mathf.Abs(lockToCurrentY) > 0.01f;
+
+        bool overExtendedZ = Mathf.Abs(startToLockZ) > 0.01f
+                           && Mathf.Sign(lockToCurrentZ) == Mathf.Sign(startToLockZ)
+                           && Mathf.Abs(lockToCurrentZ) > 0.01f;
+
+        if (!overExtendedY && !overExtendedZ) return;
+
+        if (overExtendedY) euler.y = lockedYDegrees;
+        if (overExtendedZ) euler.z = lockedZDegrees;
+        kneePivot.localEulerAngles = euler;
     }
 
     /// <summary>Converts a raw 0..360 Euler component to Unity's signed -180..180 convention.</summary>
@@ -284,10 +371,9 @@ public class SkeletalSystemMiniGameController : MonoBehaviour
 
     /// <summary>
     /// Slides the patella between patellaLoosePose and patellaLockPose based
-    /// on how close KneePivot's current rotation is to the locked target —
-    /// restoring the design the class summary describes as having been
-    /// stripped out, generalized to work with free-aim instead of a single
-    /// scalar bend angle.
+    /// on how close KneePivot's current rotation is to the locked target,
+    /// generalized to work with free-aim instead of a single scalar bend
+    /// angle.
     ///
     /// Progress is computed the same "X-agnostic" way as
     /// _patellaBlendMaxDistance in Awake: compare the current rotation to a
@@ -302,12 +388,52 @@ public class SkeletalSystemMiniGameController : MonoBehaviour
     /// Runs every frame regardless of whether the femur is currently being
     /// held, so the patella reflects the leg's current bend state even
     /// after the student lets go mid-drag — not just during active dragging.
+    ///
+    /// If patellaSquatPose is assigned, bending PAST the starting pose in
+    /// the direction opposite of locked (e.g. squatting rather than
+    /// straightening) blends toward that pose instead, using
+    /// squatBlendMaxDegrees as its own normalization range. Direction is
+    /// determined via a 2D (Y,Z) dot product against the start→locked
+    /// direction, not a single hardcoded axis, since different knee rigs
+    /// may have their flex live mostly in Y, mostly in Z, or a mix of
+    /// both. If patellaSquatPose is left unassigned, bending that way just
+    /// holds at patellaLoosePose, matching the original behavior.
     /// </summary>
     private void UpdatePatellaBlend()
     {
         if (patellaBone == null || patellaLoosePose == null || patellaLockPose == null) return;
 
+        // Figure out which side of the starting pose we're currently on:
+        // bending TOWARD locked (original loose→lock blend), or bending
+        // PAST the start in the opposite direction (toward a squat).
+        // Rather than assuming a single flex axis, treat (Y,Z) as a 2D
+        // vector relative to the start pose and compare directions via dot
+        // product — negative means current movement points the opposite
+        // way from the start→locked direction, i.e. it's a squat, no
+        // matter whether this particular rig's flex lives mostly in Y, Z,
+        // or a mix of both.
+        Vector3 startEuler = _startLocalRotation.eulerAngles;
+        Vector2 startToLock = new Vector2(
+            Mathf.DeltaAngle(startEuler.y, lockedYDegrees),
+            Mathf.DeltaAngle(startEuler.z, lockedZDegrees));
+
         Vector3 currentEuler = kneePivot.localEulerAngles;
+        Vector2 startToCurrent = new Vector2(
+            Mathf.DeltaAngle(startEuler.y, currentEuler.y),
+            Mathf.DeltaAngle(startEuler.z, currentEuler.z));
+
+        bool bendingTowardSquat = patellaSquatPose != null
+                                && startToCurrent.sqrMagnitude > 0.0001f
+                                && Vector2.Dot(startToLock, startToCurrent) < 0f;
+
+        if (bendingTowardSquat)
+        {
+            float squatT = Mathf.Clamp01(startToCurrent.magnitude / squatBlendMaxDegrees);
+            patellaBone.position = Vector3.Lerp(patellaLoosePose.position, patellaSquatPose.position, squatT);
+            patellaBone.rotation = Quaternion.Slerp(patellaLoosePose.rotation, patellaSquatPose.rotation, squatT);
+            return;
+        }
+
         Quaternion currentBlendTarget = Quaternion.Euler(currentEuler.x, lockedYDegrees, lockedZDegrees);
         float currentDistance = Quaternion.Angle(kneePivot.localRotation, currentBlendTarget);
 
@@ -367,10 +493,16 @@ public class SkeletalSystemMiniGameController : MonoBehaviour
             LockKnee();
     }
 
+    /// <summary>
+    /// Snaps the femur (and patella) into the locked pose, fires feedback,
+    /// and marks the minigame complete — but only the FIRST time this ever
+    /// happens. Every time (including repeats), it force-releases whoever's
+    /// currently holding the femur and makes it re-grabbable a moment
+    /// later, via ReleaseGripAndReenable, so the student can let go, pull
+    /// the leg back down, and lock it again to review the motion.
+    /// </summary>
     private void LockKnee()
     {
-        _isLocked = true;
-
         // Snap Y and Z to their exact locked targets; leave X exactly where
         // it currently is rather than forcing it to some assumed value.
         Vector3 euler = kneePivot.localEulerAngles;
@@ -387,11 +519,44 @@ public class SkeletalSystemMiniGameController : MonoBehaviour
             patellaBone.rotation = patellaLockPose.rotation;
         }
 
-        // Prevent the now-locked femur from being picked up again — disable
-        // whatever interactable component is driving grab detection for it.
+        bool isFirstLock = !_hasLockedAtLeastOnce;
+        _hasLockedAtLeastOnce = true;
+
+        if (isFirstLock && !_hasCompletedOnce)
+        {
+            _hasCompletedOnce = true;
+            MiniGameCompletionGate.MarkInteractionComplete(BodySystem.Skeletal);
+            Debug.Log("[SkeletalSystemMiniGameController] Knee joint locked for the first time — interaction gate satisfied.");
+        }
+        else
+        {
+            Debug.Log("[SkeletalSystemMiniGameController] Knee joint re-locked.");
+        }
+
+        // Feedback plays every time the knee locks, first time or not.
+        if (lockClickSound != null) lockClickSound.Play();
+        if (lockParticles != null) lockParticles.Play();
+
+        StartCoroutine(ReleaseGripAndReenable());
+    }
+
+    /// <summary>
+    /// Forces whoever is currently holding the femur to drop it (by
+    /// disabling its interactable, which the XR Interaction Toolkit treats
+    /// as a select-exit), waits one frame for that to actually process,
+    /// then re-enables the interactable so the femur can be freely
+    /// re-grabbed and dragged again. _isFrozenAfterLock blocks Update()'s
+    /// drag/lock logic for that single-frame gap so nothing tries to read
+    /// hand state while the release is still in flight.
+    /// </summary>
+    private IEnumerator ReleaseGripAndReenable()
+    {
+        _isFrozenAfterLock = true;
+
         var interactable = _femurTransform != null
             ? _femurTransform.GetComponent<UnityEngine.XR.Interaction.Toolkit.Interactables.XRBaseInteractable>()
             : null;
+
         if (interactable != null) interactable.enabled = false;
 
         // Disabling the interactable above can suppress the normal
@@ -401,11 +566,12 @@ public class SkeletalSystemMiniGameController : MonoBehaviour
         _femurTransform?.GetComponent<KneeJointGripFeedback>()?.ForceReset();
         GetComponentInChildren<KneeJointGripFeedback>()?.ForceReset();
 
-        if (lockClickSound != null) lockClickSound.Play();
-        if (lockParticles != null) lockParticles.Play();
+        yield return null;
 
-        Debug.Log("[SkeletalSystemMiniGameController] Knee joint locked — interaction gate satisfied.");
-        MiniGameCompletionGate.MarkInteractionComplete(BodySystem.Skeletal);
+        if (interactable != null) interactable.enabled = true;
+
+        _boundaryViolatedThisGrab = false; // a fresh grab should get a clean slate
+        _isFrozenAfterLock = false;
     }
 
     /// <summary>

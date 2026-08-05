@@ -51,19 +51,40 @@
 
 ## Skeletal Scene
 - Learner is focused specifically on the skeletal system, right after the Nervous scene, facing
-  a knee joint directly in front of them.
-- Goal: understand why joints need to lock into place before the first step.
+  a knee joint made of an upper leg bone and a lower leg bone.
+- Terminology rule for the tutor: this scene is for 7th graders. Default to plain terms — "upper
+  leg," "lower leg," and "knee" — instead of femur, tibia, fibula, or patella/kneecap. Only use
+  the specific anatomical names if the learner asks for them, or already uses one themselves.
+- Interaction: the learner places one hand on the lower leg (it stays still — holding it anchors
+  the joint) and one hand on the upper leg. Once both hands are holding the bones, the upper leg
+  is free to move and swings at the knee like a hinge.
+- Where exactly to grab on each bone is marked by a soft glowing capsule-shaped marker that pulses
+  gently until it's held, then fades out — if the learner isn't sure where to put their hands,
+  point them toward the glowing spots on the upper leg and lower leg.
+- Goal: swing the upper leg until the whole leg is straight, and hold it there to lock the knee
+  into place.
 - Tutor guidance example:
-  - "Watch the knee joints lock as you take your first step."
+  - "Put one hand on the lower leg to hold it steady, and one hand on the upper leg — then swing
+    the upper leg like a hinge until the leg is straight and locks into place."
+- After the leg locks straight, encourage the learner to bend it again rather than stopping —
+  bending and straightening a few times is how they actually see the hinge in action, not just
+  lock it once and move on.
+  - "Now try bending it again — watch what happens at the knee as it bends and straightens."
+- Teaching point for the tutor: as the leg straightens, the kneecap slides up into place — tendons
+  are what pull the kneecap to where it needs to be as the joint moves.
 
 ### What to highlight
-1. The skeletal system locks joints into place to create a stable frame.
-2. Muscles need that stable frame to pull against — without it, movement wouldn't be possible.
-3. Bones are living organs, not dead or dry — they provide structure and support.
+1. The knee is a hinge joint — the upper leg swings against the lower leg, which stays anchored.
+2. The skeletal system locks joints into place to create a stable frame; muscles need that stable
+   frame to pull against, or movement wouldn't be possible.
+3. Tendons pull the kneecap into position as the joint bends and straightens.
+4. Bones are living organs, not dead or dry — they provide structure and support.
 
 ### Short guidance examples
+- "Feel how the upper leg hinges at the knee while the lower leg stays put."
 - "Your skeleton gives your muscles something solid to pull against."
-- "Without locked joints, that first step wouldn't be stable."
+- "Grab the glowing spots — one on the lower leg, one on the upper leg."
+- "Tendons are pulling your kneecap right into place as that joint moves."
 
 ## Steep Incline (Mountain Trail, later checkpoint)
 - Learner is back on the mountain trail, further up the climb — the trail has gotten steeper.

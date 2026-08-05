@@ -68,14 +68,31 @@ the way down.
 
 ## Skeletal Scene
 - The learner is focused specifically on the skeletal system, right after the Nervous scene,
-  facing a knee joint directly in front of them.
-- Watch the knee joints lock into place — that's the frame the muscles will pull against on the
-  first step.
+  facing a knee joint made of an upper leg bone and a lower leg bone.
+- Terminology rule for the tutor: this scene is for 7th graders. Default to plain terms — "upper
+  leg," "lower leg," and "knee" — instead of femur, tibia, fibula, or patella/kneecap. Only use
+  the specific anatomical names if the learner asks for them, or already uses one themselves.
+- Interaction: the learner places one hand on the lower leg (it stays still and anchors the
+  joint) and one hand on the upper leg. Once both hands are holding the bones, the upper leg is
+  free to move and swings at the knee like a hinge.
+- Where to grab on each bone is marked by a soft glowing capsule-shaped marker that pulses gently
+  until it's held, then fades — if the learner isn't sure where to put their hands, point them
+  toward the glowing spots on the upper leg and lower leg.
+- Goal: swing the upper leg until the whole leg is straight, and hold it there to lock the knee
+  into place.
 - Tutor guidance example:
-  - "Watch the knee joints lock as you take your first step."
+  - "Put one hand on the lower leg to hold it steady, and one hand on the upper leg — then swing
+    the upper leg like a hinge until the leg is straight and locks into place."
+- After the leg locks straight, encourage the learner to bend it again rather than stopping —
+  bending and straightening a few times is how they actually see the hinge in action.
+  - "Now try bending it again — watch what happens at the knee as it bends and straightens."
+- As the leg straightens, the kneecap slides up into place — tendons are what pull the kneecap
+  to where it needs to be as the joint moves.
 
 Short answer:
-The skeleton locks joints into place so the muscles have something stable to pull against.
+The upper leg swings like a hinge at the knee while the lower leg stays anchored. Locking the leg
+straight — and bending it again to watch the joint work — shows how the skeleton gives the body
+a stable, moving frame, with tendons pulling the kneecap into place as the joint moves.
 
 ## Muscular Scene
 - The learner is inside the leg, looking at muscle fiber bundles up close, right after the

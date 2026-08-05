@@ -282,14 +282,16 @@ MonoBehaviour:
   hingeAxisLocal: {x: 1, y: 0, z: 0}
   startAngleDegrees: 0
   patellaBone: {fileID: 8699943526835275336}
-  patellaLoosePose: {fileID: 1907456967}
-  patellaLockPose: {fileID: 2114198896}
+  patellaLoosePose: {fileID: 541579137}
+  patellaLockPose: {fileID: 1351565134}
+  patellaSquatPose: {fileID: 2062326548}
+  squatBlendMaxDegrees: 60
   lockedYDegrees: 90
   lockYTolerance: 5
   lockedZDegrees: 180
   lockZTolerance: 10
-  minYDegrees: 75
-  maxYDegrees: 105
+  minYDegrees: 60
+  maxYDegrees: 120
   minZDegrees: 15
   maxZDegrees: 180
   lockClickSound: {fileID: 0}
@@ -369,6 +371,37 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 4afe71e8e0366e645a2c94d8c5ad425e, type: 3}
+--- !u!1 &541579136
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 541579137}
+  m_Layer: 0
+  m_Name: patella_loose_pose
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &541579137
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 541579136}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.6409411, y: -0.13346219, z: -0.1293937, w: 0.7447414}
+  m_LocalPosition: {x: -0.19013287, y: -9.65, z: 25.740002}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 543450652311957552}
+  m_LocalEulerAnglesHint: {x: 66.945, y: -68.619, z: -68.283}
 --- !u!1 &684257487
 GameObject:
   m_ObjectHideFlags: 0
@@ -871,6 +904,37 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: fb871a41e2474e145ab8e996aa3bf33c, type: 3}
+--- !u!1 &1351565133
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1351565134}
+  m_Layer: 0
+  m_Name: patella_lock_pose
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1351565134
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1351565133}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.737556, y: -0.11433467, z: -0.1465685, w: 0.64919674}
+  m_LocalPosition: {x: -0.19007128, y: -13.81, z: 26.170002}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 543450652311957552}
+  m_LocalEulerAnglesHint: {x: 67.536, y: -107.378, z: -110.041}
 --- !u!1001 &1437995131
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -928,7 +992,7 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 36e351a1cf9e2744392cbf93d71fa97d, type: 3}
---- !u!1 &1907456966
+--- !u!1 &2062326547
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -936,60 +1000,29 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 1907456967}
+  - component: {fileID: 2062326548}
   m_Layer: 0
-  m_Name: patella_loose_pose
+  m_Name: patella_squat_pose
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &1907456967
+--- !u!4 &2062326548
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1907456966}
+  m_GameObject: {fileID: 2062326547}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.65646744, y: -0.13071072, z: -0.13217318, w: 0.731092}
-  m_LocalPosition: {x: -0.18999875, y: -10.11, z: 25.920004}
+  m_LocalRotation: {x: 0.55725014, y: -0.14658862, z: -0.11431301, w: 0.80926925}
+  m_LocalPosition: {x: -0.18999776, y: -7.6600003, z: 24.230001}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 543450652311957552}
-  m_LocalEulerAnglesHint: {x: 67.717, y: -74.092, z: -74.213}
---- !u!1 &2114198895
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 2114198896}
-  m_Layer: 0
-  m_Name: patella_lock_pose
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &2114198896
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2114198895}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0.78114426, y: -0.10380635, z: -0.1542044, w: 0.5960361}
-  m_LocalPosition: {x: -0.18999875, y: -15.03, z: 24.830002}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 543450652311957552}
-  m_LocalEulerAnglesHint: {x: 64.049, y: -123.562, z: -127.753}
+  m_LocalEulerAnglesHint: {x: 60.275, y: -47.345, z: -44.639}
 --- !u!33 &345438626267631889
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -1015,9 +1048,10 @@ Transform:
   - {fileID: 8699943526835275336}
   - {fileID: 6459201637443949826}
   - {fileID: 8385692996952384153}
+  - {fileID: 541579137}
+  - {fileID: 1351565134}
+  - {fileID: 2062326548}
   - {fileID: 977881592531336581}
-  - {fileID: 2114198896}
-  - {fileID: 1907456967}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: -90, y: 0, z: -90}
 --- !u!1 &709947647286489736

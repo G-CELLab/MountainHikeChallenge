@@ -1,8 +1,8 @@
 ﻿<Solution>
   <Project Path="Unity.XR.OpenXR.csproj" />
   <Project Path="Unity.XR.OpenXR.Editor.Tests.csproj" />
-  <Project Path="Unity.XR.Interaction.Toolkit.Samples.StarterAssets.csproj" />
   <Project Path="Assembly-CSharp.csproj" />
+  <Project Path="Unity.XR.Interaction.Toolkit.Samples.StarterAssets.csproj" />
   <Project Path="UnityEngine.XR.OpenXR.CodeSamples.Editor.Tests.csproj" />
   <Project Path="Unity.XR.Interaction.Toolkit.Samples.StarterAssets.Editor.csproj" />
   <Project Path="Unity.XR.Interaction.Toolkit.Samples.SpatialKeyboard.Editor.csproj" />

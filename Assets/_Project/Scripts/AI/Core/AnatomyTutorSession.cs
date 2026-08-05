@@ -190,11 +190,11 @@ public static class AnatomyTutorSession
                 return new AnatomyTutorSceneSnapshot(
                     sceneId,
                     "skeletal",
-                    "The student is focused on the skeletal system — the joints locking into place so the muscles have something to pull against.",
-                    "Lock the knee joints into place to stabilize the body before the first step.",
-                    "Knee joints, interlocking bone structures, and the guide gesturing toward the legs.",
+                    "The student is focused on the skeletal system — one hand on the lower leg to anchor it, one hand on the upper leg, swinging the upper leg like a hinge at the knee.",
+                    "Swing the upper leg until the leg is straight to lock the knee into place, then bend it again to see how the joint works.",
+                    "An upper leg bone, a lower leg bone, the kneecap sliding between them, and the guide gesturing toward the knee.",
                     string.IsNullOrWhiteSpace(progressSummary)
-                        ? "Skeletal scene ready. The joints are locking into place."
+                        ? "Skeletal scene ready. The knee is loose and waiting to be swung straight."
                         : progressSummary);
 
             case AnatomySceneId.SteepIncline:
