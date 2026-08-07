@@ -52,16 +52,15 @@ public static class NarrationLines
         "You're made of trillions of tiny cells, and right now, groups of those cells are teaming up as tissues, " +
         "those tissues are built into organs, and those organs are organized into whole systems — " +
         "all of them about to work together so you can make this climb. " +
-        "Here's the important part: I'm not just here to narrate. If you ever wonder what something is, or why " +
-        "your body is doing what it's doing, just ask me out loud, any time — I'm listening the whole way up, " +
+        "If you ever wonder what something is, or why " +
+        "your body is doing what it's doing, just ask me out loud at time — I'm listening the whole way up, " +
         "and I'll answer. " +
-        "Right now, before your very first step, your brain is already sending a signal down your spinal cord, " +
-        "and your skeleton is locking your joints into place so you don't stumble. " +
-        "Trace the spine gesture with me, then look for the glowing neurons — that's your nervous system saying 'go.'";
+        "First we will explore the nervous system and explore what needs to happen before your very first step. ";
 
     public static readonly string SteepIncline =
-        "Feel that? Your legs are working harder. Your heart is beating faster. Your body knows the demand has increased, and every system is responding. " +
-        "Keep climbing — you're about to see exactly what's happening inside.";
+        "Your knee just locked into place, and this trail is about to get steeper. " +
+        "That means your legs have to work harder. " +
+        "You're about to see how your muscles and heart are responding to this challenge.";
 
     public static readonly string ThinAir =
         "Notice your breathing? The air up here has less oxygen in it, so your lungs have to work harder just to deliver the same amount your muscles are asking for. " +

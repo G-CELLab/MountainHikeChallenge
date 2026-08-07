@@ -20,7 +20,13 @@ public class SceneTransitionManager : MonoBehaviour
     public static SceneTransitionManager Instance { get; private set; }
 
     [Header("Fade")]
-    [Tooltip("Full-screen CanvasGroup on a persistent Canvas, alpha 0 = fully visible scene, 1 = fully black.")]
+    [Tooltip("VR-friendly fader: a world-space quad parented to the camera, driven by FadeScreen.cs. " +
+             "Preferred over fadeCanvasGroup in VR since Screen Space - Overlay canvases don't render " +
+             "correctly in a headset. If both are assigned, fadeScreen takes priority.")]
+    public FadeScreen fadeScreen;
+
+    [Tooltip("Legacy/desktop fallback: full-screen CanvasGroup on a persistent Canvas, alpha 0 = fully " +
+             "visible scene, 1 = fully black. Only used if fadeScreen is not assigned.")]
     public CanvasGroup fadeCanvasGroup;
     public float fadeDuration = 1f;
 
@@ -117,7 +123,26 @@ public class SceneTransitionManager : MonoBehaviour
 
     private IEnumerator Fade(float targetAlpha)
     {
+        // Preferred VR path: world-space quad fader.
+        if (fadeScreen != null)
+        {
+            fadeScreen.fadeDuration = fadeDuration;
+            if (targetAlpha >= 1f)
+                yield return fadeScreen.FadeToBlack();
+            else
+                yield return fadeScreen.FadeToClear();
+            yield break;
+        }
+
+        // Fallback: CanvasGroup (desktop/non-VR only — Screen Space Overlay
+        // canvases don't render correctly inside a headset).
         if (fadeCanvasGroup == null) yield break;
+
+        // Block clicks/interaction on the scene underneath for the whole
+        // fade, and keep blocking if we're fading TO black (targetAlpha=1)
+        // since the load happens right after this and shouldn't be
+        // interactable either.
+        fadeCanvasGroup.blocksRaycasts = true;
 
         float startAlpha = fadeCanvasGroup.alpha;
         float t = 0f;
@@ -130,5 +155,8 @@ public class SceneTransitionManager : MonoBehaviour
         }
 
         fadeCanvasGroup.alpha = targetAlpha;
+
+        // Only let clicks through again once we've fully faded back IN.
+        fadeCanvasGroup.blocksRaycasts = targetAlpha > 0f;
     }
 }

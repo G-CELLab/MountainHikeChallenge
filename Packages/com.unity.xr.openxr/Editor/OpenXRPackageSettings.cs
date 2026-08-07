@@ -174,7 +174,7 @@ namespace UnityEditor.XR.OpenXR
             Keys.Clear();
             Values.Clear();
 
-            foreach (var kv in Settings)
+            foreach (var kv in Settings.OrderBy(kv => kv.Key))
             {
                 Keys.Add(kv.Key);
                 Values.Add(kv.Value);

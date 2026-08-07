@@ -275,6 +275,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 68c9119ace1d6f64a9cfe3f561b437d2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SceneTransitionManager
+  fadeScreen: {fileID: 1936620257}
   fadeCanvasGroup: {fileID: 0}
   fadeDuration: 1
   verbose: 1
@@ -701,7 +702,7 @@ MonoBehaviour:
     advanceTrailCheckpointOnStart: 0
     delayBeforeNarrationStart: 2
     delayAfterNarrationBeforeTransition: 1
-    skipNarrationForTesting: 1
+    skipNarrationForTesting: 0
     waitForMiniGameCompletion: 0
   - sceneName: Nervous
     checkpointIndex: 0
@@ -712,8 +713,8 @@ MonoBehaviour:
     advanceTrailCheckpointOnStart: 0
     delayBeforeNarrationStart: 1.5
     delayAfterNarrationBeforeTransition: 1.5
-    skipNarrationForTesting: 1
-    waitForMiniGameCompletion: 0
+    skipNarrationForTesting: 0
+    waitForMiniGameCompletion: 1
   - sceneName: Skeletal
     checkpointIndex: 0
     sceneId: 2
@@ -746,7 +747,7 @@ MonoBehaviour:
     delayBeforeNarrationStart: 1.5
     delayAfterNarrationBeforeTransition: 1.5
     skipNarrationForTesting: 0
-    waitForMiniGameCompletion: 0
+    waitForMiniGameCompletion: 1
   - sceneName: Circulatory
     checkpointIndex: 1
     sceneId: 5
@@ -839,6 +840,7 @@ MonoBehaviour:
   verbose: 1
   skipAllNarrationForTesting: 0
   stayInSceneWhenSkippingForTesting: 0
+  testingMiniGameTimeoutSeconds: 3
 --- !u!4 &1202269046
 Transform:
   m_ObjectHideFlags: 0
@@ -1337,6 +1339,14 @@ PrefabInstance:
       propertyPath: m_JointsUpdated.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 
       objectReference: {fileID: 0}
+    - target: {fileID: 1200607955152440309, guid: 4e07ebc652b23024083a59962ac4756c, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2112427672547229265, guid: 4e07ebc652b23024083a59962ac4756c, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 5e2bb6f4b3ecfa040b9735fe6e6d80dd, type: 2}
     - target: {fileID: 2498695191797776683, guid: 4e07ebc652b23024083a59962ac4756c, type: 3}
       propertyPath: m_LineOriginTransform
       value: 
@@ -1357,6 +1367,14 @@ PrefabInstance:
       propertyPath: m_JointsUpdated.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 
       objectReference: {fileID: 0}
+    - target: {fileID: 4111165115437324331, guid: 4e07ebc652b23024083a59962ac4756c, type: 3}
+      propertyPath: m_Enabled
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4111165115437324331, guid: 4e07ebc652b23024083a59962ac4756c, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 5e2bb6f4b3ecfa040b9735fe6e6d80dd, type: 2}
     - target: {fileID: 4618737118525605573, guid: 4e07ebc652b23024083a59962ac4756c, type: 3}
       propertyPath: m_LineOriginTransform
       value: 
@@ -1364,6 +1382,10 @@ PrefabInstance:
     - target: {fileID: 5266406240201935941, guid: 4e07ebc652b23024083a59962ac4756c, type: 3}
       propertyPath: m_IsActive
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6674773500946215313, guid: 4e07ebc652b23024083a59962ac4756c, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7205084127308763272, guid: 4e07ebc652b23024083a59962ac4756c, type: 3}
       propertyPath: m_LocalPosition.x
@@ -1429,6 +1451,8 @@ PrefabInstance:
     - {fileID: 3912240492757283700, guid: 4e07ebc652b23024083a59962ac4756c, type: 3}
     - {fileID: 7283176920152209999, guid: 4e07ebc652b23024083a59962ac4756c, type: 3}
     - {fileID: 7834137264109436628, guid: 4e07ebc652b23024083a59962ac4756c, type: 3}
+    - {fileID: 3150002903867588390, guid: 4e07ebc652b23024083a59962ac4756c, type: 3}
+    - {fileID: 8524866223058772201, guid: 4e07ebc652b23024083a59962ac4756c, type: 3}
     m_RemovedGameObjects:
     - {fileID: 9122985917935306730, guid: 4e07ebc652b23024083a59962ac4756c, type: 3}
     - {fileID: 3252570220489588251, guid: 4e07ebc652b23024083a59962ac4756c, type: 3}
@@ -1475,6 +1499,12 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 7205084127308763275, guid: 4e07ebc652b23024083a59962ac4756c, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1936620254}
+    - targetCorrespondingSourceObject: {fileID: 1200607955152440309, guid: 4e07ebc652b23024083a59962ac4756c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1936620258}
+    - targetCorrespondingSourceObject: {fileID: 6674773500946215313, guid: 4e07ebc652b23024083a59962ac4756c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1936620257}
     - targetCorrespondingSourceObject: {fileID: 3231266891637361407, guid: 4e07ebc652b23024083a59962ac4756c, type: 3}
       insertIndex: -1
       addedObject: {fileID: 578925892}
@@ -1505,6 +1535,44 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistentObject
   debugLabel: Persistent Object
+--- !u!1 &1936620255 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 6674773500946215313, guid: 4e07ebc652b23024083a59962ac4756c, type: 3}
+  m_PrefabInstance: {fileID: 1936620251}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &1936620256 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1200607955152440309, guid: 4e07ebc652b23024083a59962ac4756c, type: 3}
+  m_PrefabInstance: {fileID: 1936620251}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1936620257
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1936620255}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 38a14e4005d9e2d458a6bfb1f0bdf290, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FadeScreen
+  fadeDuration: 1
+  fadeColor: {r: 0, g: 0, b: 0, a: 1}
+--- !u!114 &1936620258
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1936620256}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 38a14e4005d9e2d458a6bfb1f0bdf290, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FadeScreen
+  fadeDuration: 1
+  fadeColor: {r: 0, g: 0, b: 0, a: 1}
 --- !u!4 &2030064603 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 8155943197814358499, guid: 4e07ebc652b23024083a59962ac4756c, type: 3}

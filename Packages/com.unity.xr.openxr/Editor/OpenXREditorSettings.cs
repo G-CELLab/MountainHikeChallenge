@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Collections.Generic;
+using System.Linq;
 
 using UnityEditor;
 using UnityEngine;
@@ -143,7 +144,7 @@ namespace UnityEditor.XR.OpenXR
             Keys.Clear();
             Values.Clear();
 
-            foreach (var kv in selectedFeatureSets)
+            foreach (var kv in selectedFeatureSets.OrderBy(kv => kv.Key))
             {
                 Keys.Add(kv.Key);
                 Values.Add(kv.Value);

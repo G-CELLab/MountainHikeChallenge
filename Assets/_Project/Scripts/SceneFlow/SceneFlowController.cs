@@ -127,6 +127,14 @@ public class SceneFlowController : MonoBehaviour
              "(e.g. verifying checkpoint/transition logic end-to-end without sitting through audio).")]
     [SerializeField] private bool stayInSceneWhenSkippingForTesting = true;
 
+    [Tooltip("TESTING ONLY — for a step with waitForMiniGameCompletion checked, when narration is " +
+             "skipped for testing this is how long to wait for the REAL MiniGameEvents.OnMiniGameComplete " +
+             "before giving up and advancing anyway. Lets you either actually play the minigame during a " +
+             "quick test (transition still fires the instant you finish it) or just wait out the timeout " +
+             "to blast past it. Real (non-testing) playthroughs always wait for genuine completion — " +
+             "this timeout never applies outside the testing-skip path.")]
+    [SerializeField] private float testingMiniGameTimeoutSeconds = 3f;
+
     private static bool _persisted = false;
     private Dictionary<(string sceneName, int checkpoint), SceneFlowStep> _flowLookup;
 
@@ -241,10 +249,11 @@ public class SceneFlowController : MonoBehaviour
 
             if (step.waitForMiniGameCompletion)
             {
-                // Even in testing, the actual thing worth testing is the
-                // minigame completing — route through the real gate below
-                // instead of freezing here with nothing to wait for.
-                HandleFlowComplete(step, sceneName);
+                // Still give the real minigame-complete event a chance to fire
+                // (so you can actually play it during a quick test), but don't
+                // hang forever if you don't — bail out after the testing
+                // timeout and advance anyway.
+                HandleFlowComplete(step, sceneName, testingMiniGameTimeoutSeconds);
             }
             else if (stayInSceneWhenSkippingForTesting)
             {
@@ -306,7 +315,7 @@ public class SceneFlowController : MonoBehaviour
         aiTutor.SpeakNarration(line);
     }
 
-    private void HandleFlowComplete(SceneFlowStep step, string sceneName)
+    private void HandleFlowComplete(SceneFlowStep step, string sceneName, float miniGameTimeoutSeconds = 0f)
     {
         OnSceneFlowCompleted?.Invoke(sceneName);
 
@@ -318,7 +327,7 @@ public class SceneFlowController : MonoBehaviour
         }
 
         if (step.waitForMiniGameCompletion)
-            StartCoroutine(WaitForMiniGameThenTransition(step));
+            StartCoroutine(WaitForMiniGameThenTransition(step, miniGameTimeoutSeconds));
         else
             StartCoroutine(TransitionAfterDelay(step));
     }
@@ -332,7 +341,7 @@ public class SceneFlowController : MonoBehaviour
     /// the player has finished the task, instead of a fixed timer that has
     /// no idea whether the minigame is done.
     /// </summary>
-    private IEnumerator WaitForMiniGameThenTransition(SceneFlowStep step)
+    private IEnumerator WaitForMiniGameThenTransition(SceneFlowStep step, float timeoutSeconds = 0f)
     {
         string expectedSystem = step.sceneId.ToString();
         bool completed = false;
@@ -349,12 +358,32 @@ public class SceneFlowController : MonoBehaviour
         MiniGameEvents.OnMiniGameComplete += handler;
 
         if (verbose)
-            Debug.Log($"[SceneFlowController] Waiting for minigame completion ('{expectedSystem}') before transitioning to '{step.nextSceneName}'...");
+        {
+            string timeoutNote = timeoutSeconds > 0f ? $" (testing timeout: {timeoutSeconds}s)" : "";
+            Debug.Log($"[SceneFlowController] Waiting for minigame completion ('{expectedSystem}') before transitioning to '{step.nextSceneName}'{timeoutNote}...");
+        }
 
+        // timeoutSeconds <= 0 means "real playthrough" — wait indefinitely for
+        // the actual MiniGameEvents.OnMiniGameComplete, same as before. Only
+        // the testing-skip path passes a positive timeout.
+        float elapsed = 0f;
         while (!completed)
+        {
+            if (timeoutSeconds > 0f)
+            {
+                elapsed += Time.deltaTime;
+                if (elapsed >= timeoutSeconds)
+                {
+                    MiniGameEvents.OnMiniGameComplete -= handler;
+                    if (verbose)
+                        Debug.Log($"[SceneFlowController] ⏱ Testing timeout ({timeoutSeconds}s) reached for '{expectedSystem}' — advancing without real completion.");
+                    break;
+                }
+            }
             yield return null;
+        }
 
-        if (verbose)
+        if (completed && verbose)
             Debug.Log($"[SceneFlowController] ✅ Minigame '{expectedSystem}' complete — proceeding to transition.");
 
         yield return TransitionAfterDelay(step);
