@@ -215,9 +215,9 @@ public class SocraticDialogueController
     public string BuildPhaseInstructions()
     {
         const string keepGoing =
-            " Always end by asking a follow-up question or inviting them to try something specific in the " +
-            "simulation — don't just stop after giving information, and don't just hand them the complete " +
-            "mechanism in one go. Build it together across a few turns.";
+            " Keep the reply focused on one next step. Prefer a single concise question or one concrete action " +
+            "in the simulation, not both, and do not ask more than one question in a reply. Build it " +
+            "together across a few turns without piling on multiple prompts.";
 
         switch (Phase)
         {

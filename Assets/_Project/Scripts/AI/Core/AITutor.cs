@@ -5,6 +5,7 @@ using System.IO;
 using System.Text.RegularExpressions;
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.SceneManagement;
 
 /// <summary>
 /// Central AI orchestrator for the VR anatomy tutor.
@@ -118,6 +119,12 @@ public class AITutor : MonoBehaviour
              "covers normal network/decode jitter, not a hard ceiling for long clips.")]
     [SerializeField] private float playbackTimeoutBufferSec = 5f;
 
+    [Tooltip("Small pause inserted between consecutive TTS sentence clips so speech feels less rushed.")]
+    [SerializeField] private float interSentenceGapSec = 0.2f;
+
+    [Tooltip("Ignore transcribed speech for a short window after a scene transition so late replies from the previous mini-game do not continue in the new scene.")]
+    [SerializeField] private float postSceneTransitionIgnoreSec = 2.5f;
+
     [Header("Events")]
     public UnityEvent<string> OnResponseStarted    = new UnityEvent<string>();
     public UnityEvent<string> OnResponseCompleted  = new UnityEvent<string>();
@@ -143,6 +150,7 @@ public class AITutor : MonoBehaviour
     private bool  _isNarrating    = false;  // true only during narration — blocks all interrupts
     private bool  _interrupted    = false;
     private float _lastResponseAt = -999f;
+    private float _ignoreTranscriptsUntil = -999f;
     private bool _ttsBusy          = false;
     private int  _prefetchInFlight = 0;
     private int  _enqueueOrder     = 0;
@@ -195,6 +203,7 @@ public class AITutor : MonoBehaviour
         }
 
         SocraticMemoryStore.OnReset += HandleSocraticMemoryReset;
+        SceneManager.sceneLoaded += HandleSceneLoaded;
     }
 
     private void OnDisable()
@@ -206,6 +215,7 @@ public class AITutor : MonoBehaviour
         }
 
         SocraticMemoryStore.OnReset -= HandleSocraticMemoryReset;
+        SceneManager.sceneLoaded -= HandleSceneLoaded;
     }
 
     /// <summary>
@@ -218,6 +228,12 @@ public class AITutor : MonoBehaviour
     private void HandleSocraticMemoryReset()
     {
         _dialogueControllers.Clear();
+    }
+
+    private void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        _ignoreTranscriptsUntil = Time.realtimeSinceStartup + postSceneTransitionIgnoreSec;
+        Debug.Log($"[AITutor] Ignoring new transcripts for {postSceneTransitionIgnoreSec:F1}s after scene transition to '{scene.name}'.");
     }
 
     // ── Public API ────────────────────────────────────────────────────────────
@@ -236,6 +252,12 @@ public class AITutor : MonoBehaviour
     public void ProcessUserQuery(string query)
     {
         if (string.IsNullOrWhiteSpace(query)) return;
+
+        if (Time.realtimeSinceStartup < _ignoreTranscriptsUntil)
+        {
+            Debug.Log("[AITutor] Ignoring query during scene-transition cool-down.");
+            return;
+        }
 
         if (_isProcessing)
         {
@@ -350,6 +372,12 @@ public class AITutor : MonoBehaviour
         if (transcript.Trim().Length < 4) return;
         
         Debug.Log($"[AITutor] Transcript received: {transcript}");
+
+        if (Time.realtimeSinceStartup < _ignoreTranscriptsUntil)
+        {
+            Debug.Log("[AITutor] Transcript ignored due to post-transition cool-down.");
+            return;
+        }
         
         // Record user speech before processing
         AnatomyTutorSession.RecordUserSpeech(transcript);
@@ -822,6 +850,9 @@ public class AITutor : MonoBehaviour
                 }
                 yield return null;
             }
+
+            if (interSentenceGapSec > 0f && !_interrupted)
+                yield return new WaitForSeconds(interSentenceGapSec);
 
             bool isLastClip = _prefetchInFlight == 0 && _orderedClipQueue.Count == 0;
             if (isLastClip)

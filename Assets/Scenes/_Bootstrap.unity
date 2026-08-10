@@ -702,7 +702,7 @@ MonoBehaviour:
     advanceTrailCheckpointOnStart: 0
     delayBeforeNarrationStart: 2
     delayAfterNarrationBeforeTransition: 1
-    skipNarrationForTesting: 0
+    skipNarrationForTesting: 1
     waitForMiniGameCompletion: 0
   - sceneName: Nervous
     checkpointIndex: 0
@@ -713,8 +713,8 @@ MonoBehaviour:
     advanceTrailCheckpointOnStart: 0
     delayBeforeNarrationStart: 1.5
     delayAfterNarrationBeforeTransition: 1.5
-    skipNarrationForTesting: 0
-    waitForMiniGameCompletion: 1
+    skipNarrationForTesting: 1
+    waitForMiniGameCompletion: 0
   - sceneName: Skeletal
     checkpointIndex: 0
     sceneId: 2

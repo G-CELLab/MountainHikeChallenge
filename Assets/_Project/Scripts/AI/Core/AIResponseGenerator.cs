@@ -74,7 +74,9 @@ public class AIResponseGenerator : MonoBehaviour
         "together, digestion only happening in the stomach, or bones being lifeless), gently correct it using the " +
         "knowledge base's explanation rather than just answering the surface question. " +
         "If asked what to do, guide the learner using the knowledge base for the current anatomy scene. " +
-        "Keep replies to 1-2 sentences. Never invent instructions not in the knowledge base. " +
+        "Keep replies to 1-2 sentences. Use one clear idea per reply. Ask at most one question, and if you give " +
+        "an action, make it a single concrete next step tied to the current scene objective. Do not chain two " +
+        "questions or give multiple tasks in one response. Never invent instructions not in the knowledge base. " +
         "Always connect the current system to at least one other body system — the throughline of this whole " +
         "experience is that body systems work together to maintain homeostasis, not in isolation.";
 
@@ -106,7 +108,7 @@ public class AIResponseGenerator : MonoBehaviour
     {
         var t0 = DateTime.Now;
 
-        string systemPrompt = BuildSystemPrompt(ragHits, phaseInstructions, requireAssessmentTag);
+        string systemPrompt = BuildSystemPrompt(ragHits, sceneState, phaseInstructions, requireAssessmentTag);
         string userMessage  = BuildUserMessage(userQuery, sceneState, dialogueHistoryBlock, crossSystemMemoryBlock);
 
         if (logRequests)
@@ -151,6 +153,7 @@ public class AIResponseGenerator : MonoBehaviour
     /// </summary>
     private static string BuildSystemPrompt(
         List<RAGIndex.Hit> hits,
+        AnatomyTutorSceneSnapshot sceneState,
         string             phaseInstructions    = null,
         bool               requireAssessmentTag = false)
     {
@@ -164,6 +167,12 @@ public class AIResponseGenerator : MonoBehaviour
             sb.Append("Prefer the knowledge base over generic answers.");
         }
 
+        if (sceneState != null && !string.IsNullOrWhiteSpace(sceneState.CurrentObjective))
+        {
+            sb.Append("\n\nCURRENT SCENE OBJECTIVE: ").Append(sceneState.CurrentObjective);
+            sb.Append(" If the learner asks what to do or how to move in this scene, answer with that objective in plain language and keep it brief.");
+        }
+
         if (!string.IsNullOrWhiteSpace(phaseInstructions))
         {
             // This override has to come first and be forceful: the base
@@ -175,17 +184,9 @@ public class AIResponseGenerator : MonoBehaviour
             // supposed to do?" or seems confused, which defeats the entire
             // point of Socratic mode. Without this override, that base
             // instruction wins far more often than the phase instructions do.
-            sb.Append("\n\nSOCRATIC DIALOGUE MODE (this refines, not replaces, the persona above): You're having " +
-                      "a guided conversation, like a responsive teacher — not running a quiz that withholds " +
-                      "information. It's good to affirm what the student gets right (\"You're on the right " +
-                      "track!\"), name or label things for them (e.g. what an object in the scene is called), and " +
-                      "share a piece of the mechanism conversationally when it helps them keep moving, especially " +
-                      "if they're unsure or only partly right. The point isn't secrecy, it's pacing: build the " +
-                      "full explanation together across several turns rather than handing them the whole " +
-                      "mechanism in one go, and don't just state the complete answer to the phase's core question " +
-                      "outright — always follow up with something that keeps them engaged: a related question, " +
-                      "or an invitation to try touching/interacting with something specific in the simulation. " +
-                      "The DIALOGUE MODE notes below say more about this phase specifically.");
+            sb.Append("\n\nSOCRATIC DIALOGUE MODE: Keep the reply short, follow the knowledge base, and " +
+                      "guide the learner with one clear next step or one focused question. Avoid piling on extra " +
+                      "questions or multiple tasks in one reply.");
 
             sb.Append("\n\n").Append(phaseInstructions);
         }
@@ -229,6 +230,9 @@ public class AIResponseGenerator : MonoBehaviour
         string guidance;
         switch (phase)
         {
+            case "skeletal":
+                guidance = "Hold the lower leg steady and swing the upper leg like a hinge at the knee until the leg locks straight.";
+                break;
             case "muscular":
                 guidance = "Muscles contract to pull on the bones they're attached to, and they burn through oxygen and glucose from the blood to keep doing it.";
                 break;
