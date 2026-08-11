@@ -29,7 +29,7 @@ public class PersistentObject : MonoBehaviour
         if (_persistentByLabel.TryGetValue(debugLabel, out GameObject existing) && existing != gameObject)
         {
             Debug.LogWarning($"[PersistentObject] Duplicate '{debugLabel}' found on '{gameObject.name}' — " +
-                              $"destroying it. The persistent one from _Bootstrap wins.");
+                              $"destroying it. The persistent one from -1_Bootstrap wins.");
             Destroy(gameObject);
             return;
         }

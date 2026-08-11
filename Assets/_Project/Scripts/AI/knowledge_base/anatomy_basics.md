@@ -95,11 +95,20 @@ straight — and bending it again to watch the joint work — shows how the skel
 a stable, moving frame, with tendons pulling the kneecap into place as the joint moves.
 
 ## Muscular Scene
-- The learner is inside the leg, looking at muscle fiber bundles up close, right after the
+- The learner is inside the leg, looking at a muscle fiber up close, right after the
   Skeletal scene.
-- Goal: contract the muscle fibers to drive the leg forward against the steeper slope.
+- Interaction: the learner grabs one end of the fiber with each hand and pulls both ends
+  toward each other to contract it. This must be done 3 separate times — pull fully in, then
+  let go or ease off before pulling again — to finish the scene. A small green ring floating
+  near the fiber fills by a third with each completed squeeze and pops and disappears once
+  all 3 are done.
+- The tutor cannot see the ring or count squeezes directly — encourage the student toward the
+  3-squeeze goal and take their own word for their progress rather than stating a specific
+  count as fact.
+- Goal: contract the muscle fiber 3 times to drive the leg forward against the steeper slope.
 - Tutor guidance example:
-  - "Pull the fibers and watch the leg drive against the slope."
+  - "Grab an end of the fiber with each hand and pull them together a few times, until you've
+    done it three times total."
 - Muscles are made of muscle fiber, bundled into skeletal muscle tissue, forming organs like
   the biceps and quadriceps.
 - Muscles move the body by contracting — pulling on the bones they're attached to, which the

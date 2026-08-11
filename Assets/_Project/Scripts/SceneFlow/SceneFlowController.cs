@@ -245,7 +245,22 @@ public class SceneFlowController : MonoBehaviour
             // the actual audio/gesture playback is what's being skipped.
             MiniGameSequencer.Instance.MarkVisited(visitKey);
             if (step.advanceTrailCheckpointOnStart)
+            {
+                // Wait a frame before bumping. SceneFlowController is just one
+                // of several independent subscribers to SceneManager.sceneLoaded
+                // (PlayerRigPositioner, AIGuidePositioner, etc.), and Unity
+                // doesn't guarantee they all run before this coroutine does. The
+                // real (non-testing) narration path never hits this problem
+                // because the advance already happens seconds later, well after
+                // every other sceneLoaded subscriber for THIS load has finished
+                // — this just gives the testing-skip path that same guarantee
+                // instead of bumping the checkpoint mid-dispatch and stranding
+                // whichever subscriber happens to run after this one (e.g. the
+                // AI guide positioner reading a checkpoint no spawn point in
+                // this scene actually matches yet).
+                yield return null;
                 MiniGameSequencer.Instance.AdvanceTrailCheckpoint();
+            }
 
             if (step.waitForMiniGameCompletion)
             {

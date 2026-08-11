@@ -89,6 +89,29 @@ public class MuscleFiberBellyContract : MonoBehaviour
     private float _axisHalfSpan; // in this object's local space
     private float _currentContraction;
 
+    // ── Public accessors for hand-driven control ─────────────────────────────
+    // MuscularSystemMiniGameController reads these instead of recomputing its
+    // own axis/center/span, so the grab interaction and the visual bulge can
+    // never drift out of sync with each other.
+
+    /// <summary>This object's local-space unit direction along the fiber's length.</summary>
+    public Vector3 LocalAxisDirection => AxisVector((int)longAxis);
+
+    /// <summary>Local-space position along LocalAxisDirection that is the fiber's midpoint, computed once in Awake.</summary>
+    public float AxisCenterLocal => _axisCenter;
+
+    /// <summary>Local-space half-length of the fiber along LocalAxisDirection, computed once in Awake.</summary>
+    public float AxisHalfSpanLocal => _axisHalfSpan;
+
+    /// <summary>
+    /// Turns the automatic sine-wave test loop on/off at runtime. Called once
+    /// by MuscularSystemMiniGameController.Awake() so a scene can keep
+    /// driveAutomatically checked in the Inspector for isolated testing of
+    /// this component, without it fighting the real hand-driven controller
+    /// once that script is also in the scene.
+    /// </summary>
+    public void SetDriveAutomatically(bool value) => driveAutomatically = value;
+
     private void Awake()
     {
         var filters = explicitTargets.Count > 0

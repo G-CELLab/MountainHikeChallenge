@@ -54,7 +54,7 @@ public class AutoWalkController : MonoBehaviour
 
     [Header("References")]
     [Tooltip("The XR rig root (XR Origin or equivalent) that should move. " +
-             "Leave empty — the rig lives in the persistent _Bootstrap scene, so it " +
+             "Leave empty — the rig lives in the persistent -1_Bootstrap scene, so it " +
              "can't be assigned here via the Inspector. It's auto-resolved at runtime " +
              "from PlayerRigPositioner.rigTransform instead. Only fill this in manually " +
              "if you're testing this scene in isolation with a local rig stand-in.")]

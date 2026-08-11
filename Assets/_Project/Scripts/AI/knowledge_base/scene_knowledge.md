@@ -105,10 +105,18 @@
 - "The harder your legs work, the harder your heart has to work too."
 
 ## Muscular Scene
-- Learner is inside the leg, looking at muscle fiber bundles up close.
-- Goal: contract the muscle fibers to drive the leg forward against the steeper slope.
+- Learner is inside the leg, looking at a muscle fiber up close.
+- Interaction: grab one end of the fiber with each hand and pull both ends toward each other
+  to contract it. Do this 3 separate times — pull fully in, then let go or ease off before
+  pulling again — to finish the scene. A small green ring floating near the fiber fills by a
+  third with each completed squeeze and pops and disappears once all 3 are done.
+- The tutor cannot see the ring or count squeezes directly — encourage the student toward the
+  3-squeeze goal and take their own word for their progress rather than stating a specific
+  count as fact.
+- Goal: contract the muscle fiber 3 times to drive the leg forward against the steeper slope.
 - Tutor guidance example:
-  - "Pull the fibers and watch the leg drive against the slope."
+  - "Grab an end of the fiber with each hand and pull them together a few times, until you've
+    done it three times total."
 
 ### What to highlight
 1. Muscles move the body by contracting — pulling on the bones they're attached to, which the
@@ -118,7 +126,8 @@
    same moment the legs are working harder, not before or after.
 
 ### Short guidance examples
-- "Every pull on that fiber is what drags the bone forward."
+- "Grab both ends and pull them together — that's the motion, do it three times total."
+- "Have you squeezed it three times yet? Keep going until the ring fills up and disappears."
 - "Those fibers are burning through oxygen your heart is about to work harder to deliver."
 
 ## Circulatory Scene

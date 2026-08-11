@@ -216,14 +216,23 @@ public class HandManager : MonoBehaviour
             try { handInteractor.EndManualInteraction(); }
             catch (System.Exception) { }
 
-            try
+            // EndManualInteraction() above already select-exits whatever this
+            // interactor was holding in the common case. Only fall back to
+            // CancelInteractorSelection() if a selection somehow survived
+            // that call — calling both unconditionally raced against each
+            // other and made XRI log "received a Select Exit event for an
+            // Interactor that was not selecting it" (harmless, but noisy).
+            if (HasCurrentSelection())
             {
-                var mgr = handInteractor.interactionManager;
-                if (mgr != null)
-                    mgr.CancelInteractorSelection(
-                        (UnityEngine.XR.Interaction.Toolkit.Interactors.IXRSelectInteractor)handInteractor);
+                try
+                {
+                    var mgr = handInteractor.interactionManager;
+                    if (mgr != null)
+                        mgr.CancelInteractorSelection(
+                            (UnityEngine.XR.Interaction.Toolkit.Interactors.IXRSelectInteractor)handInteractor);
+                }
+                catch (System.Exception) { }
             }
-            catch (System.Exception) { }
         }
 
         if (!releaseCycleRunning)

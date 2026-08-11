@@ -212,11 +212,11 @@ public static class AnatomyTutorSession
                 return new AnatomyTutorSceneSnapshot(
                     sceneId,
                     "muscular",
-                    "The student is inside the leg, looking at muscle fibers contracting to power each stride up the incline.",
-                    "Pull the muscle fibers to contract them and drive the leg forward against the steeper slope.",
-                    "Muscle fiber bundles, tendons anchoring to bone, and the guide gesturing toward a contracting fiber.",
+                    "The student is inside the leg, looking at a muscle fiber up close, right after the Skeletal scene.",
+                    "Grab one end of the muscle fiber with each hand and pull them toward each other to contract it, 3 separate times, to finish this scene — a small green ring floating near the fiber fills by a third with each completed squeeze and pops/disappears once all 3 are done. You (the tutor) cannot see the ring or count squeezes yourself — encourage the student toward the 3-squeeze goal and ask how they're doing if it's unclear, but take their own word for how many they've done rather than stating a specific count as fact.",
+                    "A muscle fiber with a grippable end near each tip, tendons anchoring it to bone, a small green progress ring floating just above it, and the guide gesturing toward the fiber.",
                     string.IsNullOrWhiteSpace(progressSummary)
-                        ? "Muscular scene ready. The legs are working to power the climb."
+                        ? "Muscular scene ready. The student hasn't reported finishing the squeezes yet."
                         : progressSummary);
 
             case AnatomySceneId.Circulatory:

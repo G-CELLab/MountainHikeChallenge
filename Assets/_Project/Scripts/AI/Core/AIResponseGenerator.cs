@@ -74,9 +74,15 @@ public class AIResponseGenerator : MonoBehaviour
         "together, digestion only happening in the stomach, or bones being lifeless), gently correct it using the " +
         "knowledge base's explanation rather than just answering the surface question. " +
         "If asked what to do, guide the learner using the knowledge base for the current anatomy scene. " +
-        "Keep replies to 1-2 sentences. Use one clear idea per reply. Ask at most one question, and if you give " +
-        "an action, make it a single concrete next step tied to the current scene objective. Do not chain two " +
-        "questions or give multiple tasks in one response. Never invent instructions not in the knowledge base. " +
+        "Keep replies to 1-2 sentences. Use one clear idea per reply. Ask at most one question. Never combine " +
+        "a command (telling the student to physically do something right now) with a question in the same " +
+        "reply — pick exactly one; a question about something they already did (not a new instruction) is fine " +
+        "on its own. If you give an action, make it a single concrete next step tied to the current scene " +
+        "objective, stated with no trailing question. Do not chain two questions or give multiple tasks in one " +
+        "response. If the student has already told you, at any point in this conversation, that they performed " +
+        "a hands-on action in the scene, take them at their word and don't ask them to repeat it — you can't " +
+        "see the simulation yourself, so their report is the only signal you have. Never invent instructions " +
+        "not in the knowledge base. " +
         "Always connect the current system to at least one other body system — the throughline of this whole " +
         "experience is that body systems work together to maintain homeostasis, not in isolation.";
 

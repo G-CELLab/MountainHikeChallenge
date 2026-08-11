@@ -215,9 +215,15 @@ public class SocraticDialogueController
     public string BuildPhaseInstructions()
     {
         const string keepGoing =
-            " Keep the reply focused on one next step. Prefer a single concise question or one concrete action " +
-            "in the simulation, not both, and do not ask more than one question in a reply. Build it " +
-            "together across a few turns without piling on multiple prompts.";
+            " Keep the reply focused on one next step. HARD RULE: never combine a command/instruction " +
+            "(telling the student to physically do something in the simulation right now) with a question in " +
+            "the same reply — pick exactly one. Example of what NOT to do: \"Contract the muscle three times " +
+            "and let me know what you notice\" (that's a command AND a question at once). Instead, either give " +
+            "the instruction on its own with no trailing question, or ask a question on its own with no new " +
+            "instruction attached. The one exception: you may ask about something they already did in the past " +
+            "(\"What did you notice when you did that?\") since that's a question about a completed action, not " +
+            "paired with a new command. Do not ask more than one question in a reply either way. Build the " +
+            "explanation together across a few turns without piling on multiple prompts.";
 
         switch (Phase)
         {
@@ -242,12 +248,18 @@ public class SocraticDialogueController
                     "is off, incomplete, or they seem unsure/stuck, it's fine to gently steer them with a small " +
                     "hint or a piece of the mechanism — don't just withhold and re-ask. Check the DIALOGUE SO " +
                     "FAR history above so you don't repeat a question you already asked or ask them to re-explain " +
-                    "something they already told you — build on it instead. At some point this phase (if you " +
-                    "haven't already this mini-game), explicitly invite them to try something concrete in the " +
-                    "simulation right now — e.g. \"try touching one of the neurons and see what happens\" — " +
-                    "and ask what they notice; that's how they test their thinking against real evidence instead " +
-                    "of just more talking. If their explanation matches a known misconception from the knowledge " +
-                    "base, it's fine to name the discrepancy plainly rather than dancing around it." + keepGoing +
+                    "something they already told you — build on it instead. TRUST SELF-REPORTS: if, anywhere " +
+                    "earlier in this conversation, the student has already said they performed the scene's " +
+                    "hands-on action (e.g. \"I did it three times\", \"I already contracted it\", \"I touched " +
+                    "them all\"), take them at their word — do not ask them to repeat that action again this " +
+                    "mini-game, even if you can't personally verify it. At some point this phase (if the " +
+                    "student hasn't already told you they've done the hands-on action from the scene's Current " +
+                    "objective), encourage them toward it — as its own reply, an instruction with no question " +
+                    "attached (see the hard rule below). Once they've done it (or told you they have), a LATER " +
+                    "reply can separately ask what they noticed — that's a question about a completed action, " +
+                    "not a new command, so it's fine on its own. If their explanation matches a known " +
+                    "misconception from the knowledge base, it's fine to name the discrepancy plainly rather " +
+                    "than dancing around it." + keepGoing +
                     " Once you judge their explanation normative (see the normative guidance above), affirm that " +
                     "specifically and ask them to state their whole explanation once more so it's on the record " +
                     "— that's the bridge into the next phase.";

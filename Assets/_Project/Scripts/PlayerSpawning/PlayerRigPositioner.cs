@@ -33,7 +33,7 @@ public class PlayerRigPositioner : MonoBehaviour
 
     [Header("Scenes Without a Spawn Point")]
     [Tooltip("Scene names that intentionally have no PlayerSpawnPoint (e.g. Bootstrap).")]
-    public string[] scenesWithoutSpawnPoint = { "_Bootstrap" };
+    public string[] scenesWithoutSpawnPoint = { "-1_Bootstrap" };
 
     [Header("Auto-Walk")]
     [Tooltip("If true, automatically calls BeginAutoWalk() on the scene's AutoWalkController (if one exists) right after positioning the rig at the spawn point.")]

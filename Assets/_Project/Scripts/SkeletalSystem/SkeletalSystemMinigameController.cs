@@ -646,13 +646,6 @@ public class SkeletalSystemMiniGameController : MonoBehaviour
 
         if (interactable != null) interactable.enabled = false;
 
-        // Disabling the interactable above can suppress the normal
-        // selectExited event, which would otherwise leave the "held" tint
-        // stuck on — force both grip feedback components back to their base
-        // color explicitly.
-        _femurTransform?.GetComponent<KneeJointGripFeedback>()?.ForceReset();
-        GetComponentInChildren<KneeJointGripFeedback>()?.ForceReset();
-
         yield return null;
 
         if (interactable != null) interactable.enabled = true;

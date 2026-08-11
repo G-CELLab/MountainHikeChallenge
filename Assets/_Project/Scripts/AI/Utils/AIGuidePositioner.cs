@@ -20,7 +20,7 @@ public class AIGuidePositioner : MonoBehaviour
 {
     [Header("Scenes Without a Spawn Point")]
     [Tooltip("Scene names that intentionally have no AIGuideSpawnPoint (e.g. Bootstrap).")]
-    public string[] scenesWithoutSpawnPoint = { "_Bootstrap" };
+    public string[] scenesWithoutSpawnPoint = { "-1_Bootstrap" };
 
     [Header("Optional")]
     [Tooltip("If the guide uses a NavMeshAgent, assign it here so we Warp() instead of moving the transform directly (avoids NavMesh desync).")]
