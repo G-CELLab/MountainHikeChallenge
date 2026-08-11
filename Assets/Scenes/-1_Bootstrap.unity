@@ -435,6 +435,7 @@ GameObject:
   - component: {fileID: 566544610}
   - component: {fileID: 566544609}
   - component: {fileID: 566544611}
+  - component: {fileID: 566544612}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -485,8 +486,26 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerRigPositioner
   rigTransform: {fileID: 1936620253}
   scenesWithoutSpawnPoint:
-  - _Bootstrap
+  - -1_Bootstrap
   autoStartWalkOnSceneLoad: 1
+  verbose: 1
+--- !u!114 &566544612
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 566544608}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dad7d9c97663592489ed2f1552941e54, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MusicManager
+  trailMusic: {fileID: 8300000, guid: ef44297f5247f63409854ce0947d5bc0, type: 3}
+  miniGameMusic: {fileID: 8300000, guid: fc7f9815bce76f946bb444c9407bd65c, type: 3}
+  summitMusic: {fileID: 8300000, guid: ef44297f5247f63409854ce0947d5bc0, type: 3}
+  musicVolume: 0.5
+  crossfadeDuration: 2
   verbose: 1
 --- !u!1 &578925890 stripped
 GameObject:
@@ -559,7 +578,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ce2a8212038269f42a13a5a1a01de640, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BootstrapLoader
-  firstSceneName: _MountainTrail
+  firstSceneName: 0_MountainTrail
   extraDelaySeconds: 0
 --- !u!4 &839561605
 Transform:
@@ -693,10 +712,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SceneNarrationController
   flow:
-  - sceneName: _MountainTrail
+  - sceneName: 0_MountainTrail
     checkpointIndex: 0
     sceneId: 0
-    nextSceneName: Nervous
+    nextSceneName: 1_Nervous
     nextSceneId: 1
     onlyNarrateOnFirstVisit: 0
     advanceTrailCheckpointOnStart: 0
@@ -704,10 +723,10 @@ MonoBehaviour:
     delayAfterNarrationBeforeTransition: 1
     skipNarrationForTesting: 1
     waitForMiniGameCompletion: 0
-  - sceneName: Nervous
+  - sceneName: 1_Nervous
     checkpointIndex: 0
     sceneId: 1
-    nextSceneName: Skeletal
+    nextSceneName: 2_Skeletal
     nextSceneId: 2
     onlyNarrateOnFirstVisit: 0
     advanceTrailCheckpointOnStart: 0
@@ -715,32 +734,32 @@ MonoBehaviour:
     delayAfterNarrationBeforeTransition: 1.5
     skipNarrationForTesting: 1
     waitForMiniGameCompletion: 0
-  - sceneName: Skeletal
+  - sceneName: 2_Skeletal
     checkpointIndex: 0
     sceneId: 2
-    nextSceneName: _MountainTrail
+    nextSceneName: 0_MountainTrail
     nextSceneId: 3
     onlyNarrateOnFirstVisit: 0
     advanceTrailCheckpointOnStart: 1
     delayBeforeNarrationStart: 1.5
     delayAfterNarrationBeforeTransition: 1.5
-    skipNarrationForTesting: 0
-    waitForMiniGameCompletion: 1
-  - sceneName: _MountainTrail
+    skipNarrationForTesting: 1
+    waitForMiniGameCompletion: 0
+  - sceneName: 0_MountainTrail
     checkpointIndex: 1
     sceneId: 3
-    nextSceneName: Muscular
+    nextSceneName: 3_Muscular
     nextSceneId: 4
     onlyNarrateOnFirstVisit: 0
     advanceTrailCheckpointOnStart: 0
     delayBeforeNarrationStart: 1.5
     delayAfterNarrationBeforeTransition: 1.5
-    skipNarrationForTesting: 0
+    skipNarrationForTesting: 1
     waitForMiniGameCompletion: 0
-  - sceneName: Muscular
+  - sceneName: 3_Muscular
     checkpointIndex: 1
     sceneId: 4
-    nextSceneName: Circulatory
+    nextSceneName: 4_Circulatory
     nextSceneId: 5
     onlyNarrateOnFirstVisit: 0
     advanceTrailCheckpointOnStart: 0
@@ -748,10 +767,10 @@ MonoBehaviour:
     delayAfterNarrationBeforeTransition: 1.5
     skipNarrationForTesting: 0
     waitForMiniGameCompletion: 1
-  - sceneName: Circulatory
+  - sceneName: 4_Circulatory
     checkpointIndex: 1
     sceneId: 5
-    nextSceneName: _MountainTrail
+    nextSceneName: 0_MountainTrail
     nextSceneId: 6
     onlyNarrateOnFirstVisit: 0
     advanceTrailCheckpointOnStart: 1
@@ -1335,11 +1354,19 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 537281182338644563, guid: 4e07ebc652b23024083a59962ac4756c, type: 3}
+      propertyPath: m_Cameras.Array.size
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 1148887101244969066, guid: 4e07ebc652b23024083a59962ac4756c, type: 3}
       propertyPath: m_JointsUpdated.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 
       objectReference: {fileID: 0}
     - target: {fileID: 1200607955152440309, guid: 4e07ebc652b23024083a59962ac4756c, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1270814777259120859, guid: 4e07ebc652b23024083a59962ac4756c, type: 3}
       propertyPath: m_IsActive
       value: 0
       objectReference: {fileID: 0}
@@ -1443,6 +1470,10 @@ PrefabInstance:
       propertyPath: m_JointsUpdated.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 
       objectReference: {fileID: 0}
+    - target: {fileID: 8370783529077246417, guid: 4e07ebc652b23024083a59962ac4756c, type: 3}
+      propertyPath: m_CullingMask.m_Bits
+      value: 4294967295
+      objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: 5755272309762523098, guid: 4e07ebc652b23024083a59962ac4756c, type: 3}
     - {fileID: 3478045004774296814, guid: 4e07ebc652b23024083a59962ac4756c, type: 3}
@@ -1458,6 +1489,7 @@ PrefabInstance:
     - {fileID: 3252570220489588251, guid: 4e07ebc652b23024083a59962ac4756c, type: 3}
     - {fileID: 5292966344216666653, guid: 4e07ebc652b23024083a59962ac4756c, type: 3}
     - {fileID: 250425958151906894, guid: 4e07ebc652b23024083a59962ac4756c, type: 3}
+    - {fileID: 1270814777259120859, guid: 4e07ebc652b23024083a59962ac4756c, type: 3}
     m_AddedGameObjects:
     - targetCorrespondingSourceObject: {fileID: 4360417127884722023, guid: 4e07ebc652b23024083a59962ac4756c, type: 3}
       insertIndex: -1
@@ -1499,9 +1531,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 7205084127308763275, guid: 4e07ebc652b23024083a59962ac4756c, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1936620254}
-    - targetCorrespondingSourceObject: {fileID: 1200607955152440309, guid: 4e07ebc652b23024083a59962ac4756c, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1936620258}
     - targetCorrespondingSourceObject: {fileID: 6674773500946215313, guid: 4e07ebc652b23024083a59962ac4756c, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1936620257}
@@ -1540,11 +1569,6 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 6674773500946215313, guid: 4e07ebc652b23024083a59962ac4756c, type: 3}
   m_PrefabInstance: {fileID: 1936620251}
   m_PrefabAsset: {fileID: 0}
---- !u!1 &1936620256 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 1200607955152440309, guid: 4e07ebc652b23024083a59962ac4756c, type: 3}
-  m_PrefabInstance: {fileID: 1936620251}
-  m_PrefabAsset: {fileID: 0}
 --- !u!114 &1936620257
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1552,20 +1576,6 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1936620255}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 38a14e4005d9e2d458a6bfb1f0bdf290, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::FadeScreen
-  fadeDuration: 1
-  fadeColor: {r: 0, g: 0, b: 0, a: 1}
---- !u!114 &1936620258
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1936620256}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 38a14e4005d9e2d458a6bfb1f0bdf290, type: 3}
