@@ -251,7 +251,22 @@ public class SceneFlowController : MonoBehaviour
             // the actual audio/gesture playback is what's being skipped.
             MiniGameSequencer.Instance.MarkVisited(visitKey);
             if (step.advanceTrailCheckpointOnStart)
+            {
+                // Wait one frame before mutating TrailCheckpointIndex. This
+                // coroutine started synchronously inside HandleSceneLoaded, so
+                // without this yield, AdvanceTrailCheckpoint() runs BEFORE
+                // Unity finishes dispatching this same sceneLoaded event to
+                // every other subscriber (PlayerRigPositioner, AIGuidePositioner,
+                // etc.) — whichever of those happens to be later in the
+                // subscriber order would then read the NEW checkpoint for a
+                // scene load that was actually meant to use the old one,
+                // landing the AI guide (or player) at the wrong checkpoint's
+                // spawn point. Yielding here guarantees every subscriber sees
+                // a consistent checkpoint value for this scene load, matching
+                // the comment at the top of HandleSceneLoaded.
+                yield return null;
                 MiniGameSequencer.Instance.AdvanceTrailCheckpoint();
+            }
 
             // The narration line we just skipped is also the Socratic dialogue's
             // opening question (see AITutor) — skipping it means that dialogue

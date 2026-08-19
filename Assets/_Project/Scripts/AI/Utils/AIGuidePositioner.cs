@@ -35,6 +35,21 @@ public class AIGuidePositioner : MonoBehaviour
     [Header("Debug")]
     public bool verbose = true;
 
+    private void Awake()
+    {
+        // Disable immediately, before Unity gets a chance to run the
+        // NavMeshAgent's own OnEnable — that's where its internal
+        // auto-placement fires and logs "Failed to create agent because
+        // there is no valid NavMesh" if the object is active in a scene
+        // with none (true for Bootstrap, where Carla first spawns). Awake
+        // runs for every component on this GameObject before OnEnable runs
+        // for any of them, so disabling here reliably wins the race.
+        // TryWarpOnNavMesh() re-enables it later, only once a valid
+        // NavMesh position has actually been confirmed nearby.
+        if (navMeshAgent != null)
+            navMeshAgent.enabled = false;
+    }
+
     private void OnEnable()
     {
         SceneManager.sceneLoaded += HandleSceneLoaded;
@@ -49,6 +64,14 @@ public class AIGuidePositioner : MonoBehaviour
     {
         if (System.Array.IndexOf(scenesWithoutSpawnPoint, scene.name) >= 0)
         {
+            // No baked NavMesh exists in this scene either (Bootstrap has none).
+            // Leaving the agent enabled here makes Unity's own auto-placement
+            // fire on OnEnable and log "Failed to create agent because there is
+            // no valid NavMesh" — disable it explicitly so that never happens,
+            // same as TryWarpOnNavMesh already does for the sampling-failure case.
+            if (navMeshAgent != null)
+                navMeshAgent.enabled = false;
+
             if (verbose)
                 Debug.Log($"[AIGuidePositioner] '{scene.name}' has no spawn point by design — skipping.");
             return;
