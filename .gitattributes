@@ -8,6 +8,9 @@
 *.physicMaterial merge=unityyamlmerge eol=lf
 *.meta merge=unityyamlmerge eol=lf
 
+# Unity TerrainData is binary despite the .asset extension
+Assets/_Project/Terrain/MountainTerrain.asset binary
+
 # C# scripts
 *.cs text diff=csharp
 
