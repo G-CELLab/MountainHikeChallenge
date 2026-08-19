@@ -50,11 +50,31 @@ public class AutoWalkController : MonoBehaviour
         [Tooltip("Ordered waypoints for this checkpoint's segment. Drag that checkpoint's own " +
                  "PlayerEndPoint in as the LAST element, same as the single-path case below.")]
         public Transform[] waypoints;
+
+        [Header("Mountain Progress Reporting (this segment only)")]
+        [Tooltip("This segment's own slice of the overall 0-1 climb — e.g. checkpoint 0 might be " +
+                 "0.0-0.2, checkpoint 1 might be 0.2-0.4, and so on up to 1.0 at the summit. Each " +
+                 "checkpoint needs ITS OWN range here; the component-level Progress Range Start/End " +
+                 "fields further down are only used as a fallback for the flat 'Waypoints' list " +
+                 "(single-segment scenes), not for anything in this list.")]
+        [Range(0f, 1f)] public float progressRangeStart = 0f;
+        [Range(0f, 1f)] public float progressRangeEnd = 1f;
+
+        [Header("Required Systems (this segment only)")]
+        [Tooltip("If set, this segment's walk won't actually start moving until every system listed " +
+                 "here is marked complete on GameManager — same idea as the component-level Required " +
+                 "Systems Before Walk field further down, but scoped to THIS checkpoint only. Each " +
+                 "checkpoint needs its OWN requirement here (e.g. checkpoint 1's walk — the one " +
+                 "leaving Skeletal — should require Skeletal, not whatever system comes next; " +
+                 "requiring a system that hasn't happened yet deadlocks this segment forever). The " +
+                 "component-level field below is only consulted as a fallback for the flat " +
+                 "'Waypoints' single-segment case, never for a checkpointPaths entry.")]
+        public List<BodySystem> requiredSystemsBeforeWalk = new List<BodySystem>();
     }
 
     [Header("References")]
     [Tooltip("The XR rig root (XR Origin or equivalent) that should move. " +
-             "Leave empty — the rig lives in the persistent -1_Bootstrap scene, so it " +
+             "Leave empty — the rig lives in the persistent _Bootstrap scene, so it " +
              "can't be assigned here via the Inspector. It's auto-resolved at runtime " +
              "from PlayerRigPositioner.rigTransform instead. Only fill this in manually " +
              "if you're testing this scene in isolation with a local rig stand-in.")]
@@ -77,6 +97,17 @@ public class AutoWalkController : MonoBehaviour
              "only one walk segment). Horizontal direction only — see Ground Following below for " +
              "how height/slopes are handled.")]
     public Transform[] waypoints;
+
+    [Tooltip("FALLBACK ONLY — used when no checkpointPaths entry matched the current checkpoint (the " +
+             "flat 'Waypoints' single-segment case above). For a multi-checkpoint scene, set each " +
+             "checkpoint's own requirement on its CheckpointPath entry instead — this list is NOT " +
+             "shared across checkpoints, so putting a value here has no effect once checkpointPaths " +
+             "has a matching entry for the current checkpoint. If set, BeginAutoWalk() can still be " +
+             "called right away (e.g. on scene load or from a trigger volume), but actual movement " +
+             "won't start until every system listed here is marked complete on GameManager. Leave " +
+             "empty for a walk that should start as soon as BeginAutoWalk() is called.")]
+    public List<BodySystem> requiredSystemsBeforeWalk = new List<BodySystem>();
+
     public float moveSpeed = 1.5f;
     public float rotationSpeed = 4f;
     public float arrivalThreshold = 0.15f;
@@ -94,8 +125,14 @@ public class AutoWalkController : MonoBehaviour
     public float groundedPushSpeed = 2f;
 
     [Header("Mountain Progress Reporting")]
-    [Tooltip("If set, walking this path updates GameManager's mountain progress across this sub-range (e.g. 0.0-0.4 for the first trail segment).")]
+    [Tooltip("If set, walking this path updates GameManager's mountain progress across its own range " +
+             "for this segment — see each CheckpointPath entry's own Progress Range Start/End above " +
+             "when checkpointPaths is in use. The Progress Range Start/End fields directly below are " +
+             "only consulted as a fallback when no checkpointPaths entry matched (i.e. the flat " +
+             "'Waypoints' single-segment case).")]
     public bool reportProgressToGameManager = true;
+    [Tooltip("Fallback range, used only when checkpointPaths has no entry for the current checkpoint " +
+             "(so the flat Waypoints field above is what's actually walking).")]
     [Range(0f, 1f)] public float progressRangeStart = 0f;
     [Range(0f, 1f)] public float progressRangeEnd = 1f;
 
@@ -112,8 +149,66 @@ public class AutoWalkController : MonoBehaviour
     private Coroutine _walkRoutine;
     private float _totalPathLength;
     private Transform[] _activeWaypoints;
+    private CheckpointPath _activeCheckpointPath;
 
     // ── Public API ────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Read-only check: would BeginAutoWalk() actually walk anywhere right now,
+    /// for the CURRENT trail checkpoint? True only if there's a non-empty
+    /// waypoint chain for this checkpoint AND (if that checkpoint has any
+    /// requiredSystemsBeforeWalk) every one of those systems is already
+    /// complete. Doesn't start anything or touch any internal state — this
+    /// exists so SceneFlowController can decide whether to wait for
+    /// OnWalkCompleted without guessing or needing a manually-set flag.
+    ///
+    /// Checking required systems synchronously (rather than waiting) works
+    /// because a checkpoint's requirement is always something that finishes
+    /// BEFORE the player ever arrives back at that checkpoint (that's the
+    /// whole point of the gate) — so by the time this scene has loaded and
+    /// SceneFlowController is asking, the answer is already knowable. A
+    /// checkpoint whose requirement can't possibly be done yet (e.g.
+    /// checkpoint 0 requiring Nervous+Skeletal, which haven't happened on
+    /// this first visit) correctly reports false — no walk to wait for.
+    /// </summary>
+    public bool WillWalkAtCurrentCheckpoint()
+    {
+        int checkpoint = MiniGameSequencer.Instance.TrailCheckpointIndex;
+
+        Transform[] activeWaypoints = null;
+        List<BodySystem> requiredSystems = null;
+
+        foreach (var path in checkpointPaths)
+        {
+            if (path.checkpointIndex == checkpoint)
+            {
+                activeWaypoints = path.waypoints;
+                requiredSystems = path.requiredSystemsBeforeWalk;
+                break;
+            }
+        }
+
+        // Fallback to the flat single-segment case if no checkpointPaths entry matched.
+        if (activeWaypoints == null)
+        {
+            activeWaypoints = waypoints;
+            requiredSystems = requiredSystemsBeforeWalk;
+        }
+
+        if (activeWaypoints == null || activeWaypoints.Length == 0) return false;
+
+        if (requiredSystems != null && requiredSystems.Count > 0)
+        {
+            if (GameManager.Instance == null) return false;
+            foreach (var system in requiredSystems)
+            {
+                if (!GameManager.Instance.IsSystemComplete(system))
+                    return false;
+            }
+        }
+
+        return true;
+    }
 
     public void BeginAutoWalk()
     {
@@ -153,7 +248,38 @@ public class AutoWalkController : MonoBehaviour
             yield return new WaitForSecondsRealtime(startDelaySeconds);
         }
 
+        // Per-checkpoint requirement when a checkpointPaths entry matched (the
+        // usual _MountainTrail case); the component-level list is only a
+        // fallback for the flat single-segment Waypoints case.
+        List<BodySystem> activeRequiredSystems =
+            _activeCheckpointPath != null ? _activeCheckpointPath.requiredSystemsBeforeWalk : requiredSystemsBeforeWalk;
+
+        if (activeRequiredSystems != null && activeRequiredSystems.Count > 0)
+        {
+            if (verbose)
+                Debug.Log($"[AutoWalkController] Waiting for required systems before walking: " +
+                          $"{string.Join(", ", activeRequiredSystems)}");
+
+            yield return new WaitUntil(() => AllRequiredSystemsComplete(activeRequiredSystems));
+
+            if (verbose)
+                Debug.Log("[AutoWalkController] Required systems complete — proceeding with walk.");
+        }
+
         yield return WalkRoutine();
+    }
+
+    private bool AllRequiredSystemsComplete(List<BodySystem> requiredSystems)
+    {
+        if (GameManager.Instance == null) return false;
+
+        foreach (var system in requiredSystems)
+        {
+            if (!GameManager.Instance.IsSystemComplete(system))
+                return false;
+        }
+
+        return true;
     }
 
     // ── Path resolution ───────────────────────────────────────────────────────
@@ -181,10 +307,12 @@ public class AutoWalkController : MonoBehaviour
                 }
                 if (verbose)
                     Debug.Log($"[AutoWalkController] Using Checkpoint Paths entry for checkpoint {checkpoint}.");
+                _activeCheckpointPath = path;
                 return path.waypoints;
             }
         }
 
+        _activeCheckpointPath = null;
         return waypoints;
     }
 
@@ -235,6 +363,13 @@ public class AutoWalkController : MonoBehaviour
         OnWalkStarted?.Invoke();
         if (verbose) Debug.Log("[AutoWalkController] 🥾 Auto-walk started.");
 
+        // Per-checkpoint segment uses its own progressRangeStart/End; the flat
+        // Waypoints fallback case (no matching checkpointPaths entry) uses the
+        // component-level fields instead. Resolving both into local floats here
+        // means the rest of this routine doesn't need to care which case it's in.
+        float rangeStart = _activeCheckpointPath != null ? _activeCheckpointPath.progressRangeStart : progressRangeStart;
+        float rangeEnd = _activeCheckpointPath != null ? _activeCheckpointPath.progressRangeEnd : progressRangeEnd;
+
         _totalPathLength = ComputeTotalPathLength();
         float distanceCovered = 0f;
 
@@ -277,7 +412,7 @@ public class AutoWalkController : MonoBehaviour
                 if (reportProgressToGameManager && GameManager.Instance != null && _totalPathLength > 0f)
                 {
                     float localProgress = Mathf.Clamp01(distanceCovered / _totalPathLength);
-                    float globalProgress = Mathf.Lerp(progressRangeStart, progressRangeEnd, localProgress);
+                    float globalProgress = Mathf.Lerp(rangeStart, rangeEnd, localProgress);
                     GameManager.Instance.SetMountainProgress(globalProgress);
                 }
 
@@ -289,7 +424,7 @@ public class AutoWalkController : MonoBehaviour
         }
 
         if (reportProgressToGameManager && GameManager.Instance != null)
-            GameManager.Instance.SetMountainProgress(progressRangeEnd);
+            GameManager.Instance.SetMountainProgress(rangeEnd);
 
         IsWalking = false;
         OnWalkCompleted?.Invoke();

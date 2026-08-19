@@ -670,6 +670,12 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 4464236709896612719, guid: 9319dd1df9893a34a896be432a2c5cff, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1875009216}
+    - targetCorrespondingSourceObject: {fileID: 4464236709896612719, guid: 9319dd1df9893a34a896be432a2c5cff, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1875009217}
+    - targetCorrespondingSourceObject: {fileID: 4464236709896612719, guid: 9319dd1df9893a34a896be432a2c5cff, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1875009218}
   m_SourcePrefab: {fileID: 100100000, guid: 9319dd1df9893a34a896be432a2c5cff, type: 3}
 --- !u!114 &1091485228 stripped
 MonoBehaviour:
@@ -717,144 +723,118 @@ MonoBehaviour:
     sceneId: 0
     nextSceneName: 1_Nervous
     nextSceneId: 1
-    onlyNarrateOnFirstVisit: 0
     advanceTrailCheckpointOnStart: 0
     delayBeforeNarrationStart: 2
     delayAfterNarrationBeforeTransition: 1
-    skipNarrationForTesting: 1
-    waitForMiniGameCompletion: 0
+    skipForTesting: 1
   - sceneName: 1_Nervous
     checkpointIndex: 0
     sceneId: 1
     nextSceneName: 2_Skeletal
     nextSceneId: 2
-    onlyNarrateOnFirstVisit: 0
     advanceTrailCheckpointOnStart: 0
     delayBeforeNarrationStart: 1.5
     delayAfterNarrationBeforeTransition: 1.5
-    skipNarrationForTesting: 1
-    waitForMiniGameCompletion: 0
+    skipForTesting: 1
   - sceneName: 2_Skeletal
     checkpointIndex: 0
     sceneId: 2
     nextSceneName: 0_MountainTrail
     nextSceneId: 3
-    onlyNarrateOnFirstVisit: 0
     advanceTrailCheckpointOnStart: 1
     delayBeforeNarrationStart: 1.5
     delayAfterNarrationBeforeTransition: 1.5
-    skipNarrationForTesting: 1
-    waitForMiniGameCompletion: 0
+    skipForTesting: 1
   - sceneName: 0_MountainTrail
     checkpointIndex: 1
     sceneId: 3
     nextSceneName: 3_Muscular
     nextSceneId: 4
-    onlyNarrateOnFirstVisit: 0
     advanceTrailCheckpointOnStart: 0
     delayBeforeNarrationStart: 1.5
     delayAfterNarrationBeforeTransition: 1.5
-    skipNarrationForTesting: 1
-    waitForMiniGameCompletion: 0
+    skipForTesting: 0
   - sceneName: 3_Muscular
     checkpointIndex: 1
     sceneId: 4
     nextSceneName: 4_Circulatory
     nextSceneId: 5
-    onlyNarrateOnFirstVisit: 0
     advanceTrailCheckpointOnStart: 0
     delayBeforeNarrationStart: 1.5
     delayAfterNarrationBeforeTransition: 1.5
-    skipNarrationForTesting: 0
-    waitForMiniGameCompletion: 1
+    skipForTesting: 0
   - sceneName: 4_Circulatory
     checkpointIndex: 1
     sceneId: 5
     nextSceneName: 0_MountainTrail
     nextSceneId: 6
-    onlyNarrateOnFirstVisit: 0
     advanceTrailCheckpointOnStart: 1
     delayBeforeNarrationStart: 1.5
     delayAfterNarrationBeforeTransition: 1.5
-    skipNarrationForTesting: 0
-    waitForMiniGameCompletion: 0
-  - sceneName: _MountainTrail
+    skipForTesting: 1
+  - sceneName: 0_MountainTrail
     checkpointIndex: 2
     sceneId: 6
-    nextSceneName: Respiratory
+    nextSceneName: 5_Respiratory
     nextSceneId: 7
-    onlyNarrateOnFirstVisit: 0
     advanceTrailCheckpointOnStart: 0
     delayBeforeNarrationStart: 1.5
     delayAfterNarrationBeforeTransition: 1.5
-    skipNarrationForTesting: 0
-    waitForMiniGameCompletion: 0
-  - sceneName: Respiratory
+    skipForTesting: 0
+  - sceneName: 5_Respiratory
     checkpointIndex: 2
     sceneId: 7
-    nextSceneName: _MountainTrail
+    nextSceneName: 0_MountainTrail
     nextSceneId: 8
-    onlyNarrateOnFirstVisit: 0
     advanceTrailCheckpointOnStart: 1
     delayBeforeNarrationStart: 1.5
     delayAfterNarrationBeforeTransition: 1.5
-    skipNarrationForTesting: 0
-    waitForMiniGameCompletion: 0
-  - sceneName: _MountainTrail
+    skipForTesting: 1
+  - sceneName: 0_MountainTrail
     checkpointIndex: 3
     sceneId: 8
-    nextSceneName: Digestive
+    nextSceneName: 6_Digestive
     nextSceneId: 9
-    onlyNarrateOnFirstVisit: 0
     advanceTrailCheckpointOnStart: 0
     delayBeforeNarrationStart: 1.5
     delayAfterNarrationBeforeTransition: 1.5
-    skipNarrationForTesting: 0
-    waitForMiniGameCompletion: 0
-  - sceneName: Digestive
+    skipForTesting: 0
+  - sceneName: 6_Digestive
     checkpointIndex: 3
     sceneId: 9
-    nextSceneName: _MountainTrail
+    nextSceneName: 0_MountainTrail
     nextSceneId: 10
-    onlyNarrateOnFirstVisit: 0
     advanceTrailCheckpointOnStart: 1
     delayBeforeNarrationStart: 1.5
     delayAfterNarrationBeforeTransition: 1.5
-    skipNarrationForTesting: 0
-    waitForMiniGameCompletion: 0
-  - sceneName: _MountainTrail
+    skipForTesting: 1
+  - sceneName: 0_MountainTrail
     checkpointIndex: 4
     sceneId: 10
-    nextSceneName: Homeostasis
+    nextSceneName: 7_Homeostasis
     nextSceneId: 11
-    onlyNarrateOnFirstVisit: 0
     advanceTrailCheckpointOnStart: 0
     delayBeforeNarrationStart: 1.5
     delayAfterNarrationBeforeTransition: 1.5
-    skipNarrationForTesting: 0
-    waitForMiniGameCompletion: 0
-  - sceneName: Homeostasis
+    skipForTesting: 0
+  - sceneName: 7_Homeostasis
     checkpointIndex: 4
     sceneId: 11
-    nextSceneName: _MountainTrail
+    nextSceneName: 0_MountainTrail
     nextSceneId: 12
-    onlyNarrateOnFirstVisit: 0
     advanceTrailCheckpointOnStart: 1
     delayBeforeNarrationStart: 1.5
     delayAfterNarrationBeforeTransition: 1.5
-    skipNarrationForTesting: 0
-    waitForMiniGameCompletion: 0
-  - sceneName: _MountainTrail
+    skipForTesting: 1
+  - sceneName: 0_MountainTrail
     checkpointIndex: 5
     sceneId: 12
     nextSceneName: 
     nextSceneId: 12
-    onlyNarrateOnFirstVisit: 0
     advanceTrailCheckpointOnStart: 0
     delayBeforeNarrationStart: 1.5
     delayAfterNarrationBeforeTransition: 1.5
-    skipNarrationForTesting: 0
-    waitForMiniGameCompletion: 0
+    skipForTesting: 0
   aiTutor: {fileID: 1091485228}
   verbose: 1
   skipAllNarrationForTesting: 0
@@ -1237,9 +1217,58 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AIGuidePositioner
   scenesWithoutSpawnPoint:
-  - _Bootstrap
-  navMeshAgent: {fileID: 0}
+  - -1_Bootstrap
+  navMeshAgent: {fileID: 1875009217}
+  navMeshSampleRadius: 2
   verbose: 1
+--- !u!195 &1875009217
+NavMeshAgent:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1875009205}
+  m_Enabled: 1
+  m_AgentTypeID: 0
+  m_Radius: 0.5
+  m_Speed: 3.5
+  m_Acceleration: 8
+  avoidancePriority: 50
+  m_AngularSpeed: 120
+  m_StoppingDistance: 0
+  m_AutoTraverseOffMeshLink: 1
+  m_AutoBraking: 1
+  m_AutoRepath: 1
+  m_Height: 2
+  m_BaseOffset: 0
+  m_WalkableMask: 4294967295
+  m_ObstacleAvoidanceType: 4
+--- !u!114 &1875009218
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1875009205}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c0217a70f1bb78846a2a52a1e56cfecd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AIGuideWalker
+  autoWalkController: {fileID: 0}
+  playerRig: {fileID: 1936620253}
+  sideOffset: 1
+  forwardOffset: 0
+  retargetInterval: 0.2
+  animator: {fileID: 1875009222}
+  isWalkingParam: IsWalking
+  speedParam: WalkSpeed
+  verbose: 1
+--- !u!95 &1875009222 stripped
+Animator:
+  m_CorrespondingSourceObject: {fileID: 6944510882083302319, guid: 9319dd1df9893a34a896be432a2c5cff, type: 3}
+  m_PrefabInstance: {fileID: 1091485227}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1895683185
 GameObject:
   m_ObjectHideFlags: 0

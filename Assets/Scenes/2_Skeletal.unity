@@ -536,6 +536,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: AIGuideSpawnPoint
       objectReference: {fileID: 0}
+    - target: {fileID: 4422107085299641628, guid: 36e351a1cf9e2744392cbf93d71fa97d, type: 3}
+      propertyPath: checkpointIndex
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 7037610654914571474, guid: 36e351a1cf9e2744392cbf93d71fa97d, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0.745

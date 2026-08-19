@@ -988,7 +988,13 @@ PlayerSettings:
   XboxOneOverrideIdentityName: 
   XboxOneOverrideIdentityPublisher: 
   cloudServicesEnabled:
+    Build: 0
+    Game Performance: 0
+    Legacy Analytics: 0
+    Purchasing: 0
+    UDP: 0
     UNet: 1
+    Unity Ads: 0
   luminIcon:
     m_Name: 
     m_ModelFolderPath: 
@@ -1011,11 +1017,11 @@ PlayerSettings:
   activeInputHandler: 1
   windowsGamepadBackendHint: 0
   enableDirectStorage: 0
-  cloudProjectId: 43e2f0d6-6852-4349-8769-e40da68a3a8e
+  cloudProjectId: fcdd6c3a-ed49-4eb7-8819-a6b59dea5cd9
   framebufferDepthMemorylessMode: 0
   qualitySettingsNames: []
   projectName: MountainHikeChallenge
-  organizationId: unity_b02720223f6e96a3122a
+  organizationId: g-cellab
   cloudEnabled: 0
   legacyClampBlendShapeWeights: 0
   hmiLoadingImage: {fileID: 0}

@@ -53,7 +53,7 @@ public static class NarrationLines
         "those tissues are built into organs, and those organs are organized into whole systems — " +
         "all of them about to work together so you can make this climb. " +
         "If you ever wonder what something is, or why " +
-        "your body is doing what it's doing, just ask me out loud at time — I'm listening the whole way up, " +
+        "your body is doing what it's doing, just ask me out loud at any time — I'm listening the whole way up, " +
         "and I'll answer. " +
         "First we will explore the nervous system and explore what needs to happen before your very first step. ";
 

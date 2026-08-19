@@ -2,20 +2,28 @@ using System.Collections;
 using UnityEngine;
 
 /// <summary>
-/// Keeps a World Space Canvas floating in front of the player, using
-/// smoothed "lazy follow" rather than rigid camera-parenting.
+/// Keeps a World Space Canvas parked up-and-to-the-left of the player, with
+/// two deliberately simple rules:
 ///
-/// Rigidly parenting UI directly to the camera is a common VR comfort
-/// complaint — it feels glued to your face and moves with every micro head
-/// movement. This instead only starts catching up once the player has
-/// turned far enough that the panel would otherwise leave their view, then
-/// eases toward the new position/rotation rather than snapping.
+///   - ROTATION never changes after the initial placement. The panel does
+///     not track head rotation in any way, ever — turning your head just
+///     turns your head; the panel stays exactly where and how it was
+///     anchored.
 ///
-/// IMPORTANT: this only ever reads headTransform (the XR camera). It has no
-/// dependency on controllers, thumbsticks, or any input device — head
-/// rotation alone (physical neck movement in a real headset) is what drives
-/// repositioning. That means it works identically for a hand-tracking-only,
-/// auto-walked setup with no locomotion input at all.
+///   - POSITION only updates while AutoWalkController.IsWalking is true —
+///     i.e. only while the player is actually being moved (this project has
+///     no manual locomotion, only AutoWalkController-driven movement), so
+///     the panel keeps pace with the rig during a walk and otherwise just
+///     sits still, full stop.
+///
+/// On top of that, a small constant sine-wave bob is layered onto whatever
+/// the current position is, purely cosmetic, so the panel feels like it's
+/// gently floating instead of glued rigidly in place.
+///
+/// IMPORTANT: this only ever reads headTransform (to compute the initial
+/// anchor offset and to know where to translate toward while walking) and
+/// AutoWalkController.IsWalking — no dependency on controllers, thumbsticks,
+/// or any other input device.
 ///
 /// Attach this to the root of the HUD Canvas (the same object BodyDashboardHUD
 /// lives on, or its parent) — NOT as a child of the camera.
@@ -25,27 +33,57 @@ public class HUDFollowController : MonoBehaviour
     [Header("References")]
     [Tooltip("Usually the XR camera. Auto-finds Camera.main if left empty.")]
     public Transform headTransform;
+    [Tooltip("Auto-found via FindAnyObjectByType if left empty. The panel only actively repositions " +
+             "while THIS is walking (IsWalking) — while it's null, not present in the scene, or not " +
+             "walking, the panel just stays exactly where it currently is.")]
+    public AutoWalkController autoWalkController;
 
     [Header("Placement")]
-    [Tooltip("Distance in front of the head, in meters.")]
-    public float distance = 1.2f;
-    [Tooltip("Vertical offset from head height, in meters. Negative sits the panel slightly below eye line, like a real HUD.")]
-    public float verticalOffset = -0.25f;
+    [Tooltip("Distance from the player to the panel, in meters, computed once at startup.")]
+    public float distance = 1.0f;
+    [Tooltip("Vertical offset from head height, in meters. Positive sits the panel above eye line — " +
+             "combined with the horizontal offset below, this is what puts it 'up and left.'")]
+    public float verticalOffset = 0.15f;
+    [Tooltip("Degrees to swing the panel away from the player's initial forward direction, around the " +
+             "up axis, computed once at startup. Negative = left, positive = right (Unity's standard " +
+             "sign for rotation around Y). E.g. -40 puts the panel up and to the left.")]
+    public float horizontalOffsetDegrees = -40f;
 
     [Header("Follow Behavior")]
-    [Tooltip("Degrees the head must turn away before the panel starts repositioning. Higher = panel stays put through more head movement.")]
-    public float followAngleThreshold = 25f;
-    [Tooltip("How quickly the panel eases to its new spot once triggered. Higher = snappier, lower = floatier.")]
+    [Tooltip("How quickly the panel eases toward the player's position while AutoWalkController is " +
+             "walking. Has no effect at any other time — the panel simply does not move when not " +
+             "walking, regardless of head rotation or movement.")]
     public float followSpeed = 4f;
-    [Tooltip("Ignore head pitch (looking up/down) when orienting the panel, so it always stays upright instead of tilting with the camera.")]
-    public bool keepUpright = true;
+
+    [Header("Hover")]
+    [Tooltip("How far the panel bobs up and down, in meters. Purely cosmetic — a small idle 'floating' " +
+             "motion so the panel doesn't feel glued in place. Runs continuously, walking or not.")]
+    public float hoverAmplitude = 0.02f;
+    [Tooltip("How fast the hover bob cycles, in radians/second.")]
+    public float hoverSpeed = 1.5f;
 
     [Header("Startup")]
-    [Tooltip("Frames to wait before the first snap, so XR tracking has reported a real head position/rotation instead of the rig's raw pre-tracking transform (often (0,0,0) locally, which is what was causing the panel to appear below the floor on scene start).")]
+    [Tooltip("Frames to wait before checking head height, so XR tracking has had at least a couple " +
+             "frames to start reporting. This alone usually isn't enough on its own — see " +
+             "minPlausibleHeadHeight below for the actual safety net.")]
     public int startupDelayFrames = 3;
+    [Tooltip("Minimum head Y position (meters) considered a real, tracked pose rather than the rig's " +
+             "raw pre-tracking transform (often sitting near 0). SnapToHead won't fire until headTransform " +
+             "is at or above this height — without this check, snapping too early could permanently lock " +
+             "the panel near the floor, since position only updates while walking and wouldn't get a " +
+             "chance to self-correct until the next walk starts. Set below your shortest player's actual " +
+             "eye height.")]
+    public float minPlausibleHeadHeight = 0.5f;
+    [Tooltip("Give up waiting for a plausible head height after this many extra frames (on top of " +
+             "startupDelayFrames) and snap anyway, so a genuinely unusual rig setup doesn't leave the " +
+             "panel waiting forever.")]
+    public int maxExtraWaitFrames = 120;
 
-    private Vector3 _targetPosition;
-    private Quaternion _targetRotation;
+    // Fixed forever after SnapToHead — this is what makes position updates
+    // translation-only. Rotation is set once in SnapToHead and never touched
+    // again anywhere in this script.
+    private Vector3 _anchorOffset;
+    private Vector3 _basePosition;
     private bool _initialized;
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
@@ -58,67 +96,85 @@ public class HUDFollowController : MonoBehaviour
             if (cam != null) headTransform = cam.transform;
         }
 
+        if (autoWalkController == null)
+            autoWalkController = FindAnyObjectByType<AutoWalkController>();
+
         _initialized = false;
         StartCoroutine(DelayedFirstSnap());
     }
 
     private IEnumerator DelayedFirstSnap()
     {
-        // Wait a few frames so XR tracking has had a chance to report a real
-        // pose before we snap to it. Snapping on frame 0 risks reading the
-        // rig's raw pre-tracking transform.
         for (int i = 0; i < Mathf.Max(1, startupDelayFrames); i++)
             yield return null;
+
+        // Extra safety net: keep waiting (up to maxExtraWaitFrames) if the head
+        // still isn't at a plausible height yet — XR tracking can take longer
+        // than a couple frames to report a real pose, and since position only
+        // updates while walking, a bad initial snap wouldn't get a chance to
+        // self-correct until the next walk starts.
+        int extraFrames = 0;
+        while (headTransform != null && headTransform.position.y < minPlausibleHeadHeight
+               && extraFrames < maxExtraWaitFrames)
+        {
+            yield return null;
+            extraFrames++;
+        }
 
         if (headTransform != null) SnapToHead();
     }
 
-    private void LateUpdate()
+    private void Update()
     {
-        if (headTransform == null || !_initialized) return;
+        if (!_initialized || headTransform == null) return;
 
-        Vector3 desiredPosition = ComputeDesiredPosition();
-        Quaternion desiredRotation = ComputeDesiredRotation(desiredPosition);
+        // Re-resolve if the scene changed underneath us (AutoWalkController
+        // lives on a per-scene GameObject, not a persistent one) and we
+        // don't currently have a valid reference.
+        if (autoWalkController == null)
+            autoWalkController = FindAnyObjectByType<AutoWalkController>();
 
-        float angleFromCurrentTarget = Quaternion.Angle(transform.rotation, desiredRotation);
+        bool isWalking = autoWalkController != null && autoWalkController.IsWalking;
 
-        if (angleFromCurrentTarget > followAngleThreshold)
+        if (isWalking)
         {
-            _targetPosition = desiredPosition;
-            _targetRotation = desiredRotation;
+            Vector3 desiredBase = headTransform.position + _anchorOffset;
+            _basePosition = Vector3.Lerp(_basePosition, desiredBase, followSpeed * Time.deltaTime);
         }
+        // Not walking: _basePosition simply doesn't change. No head-rotation
+        // or head-position dependency at all while stationary.
 
-        transform.position = Vector3.Lerp(transform.position, _targetPosition, followSpeed * Time.deltaTime);
-        transform.rotation = Quaternion.Slerp(transform.rotation, _targetRotation, followSpeed * Time.deltaTime);
+        transform.position = _basePosition + HoverOffset();
+        // Rotation is intentionally never set here — it stays whatever
+        // SnapToHead left it as.
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private void SnapToHead()
     {
-        _targetPosition = ComputeDesiredPosition();
-        _targetRotation = ComputeDesiredRotation(_targetPosition);
-        transform.SetPositionAndRotation(_targetPosition, _targetRotation);
+        Vector3 flatForward = FlattenAndNormalize(headTransform.forward);
+        Vector3 offsetDirection = Quaternion.AngleAxis(horizontalOffsetDegrees, Vector3.up) * flatForward;
+
+        _anchorOffset = offsetDirection * distance;
+        _anchorOffset.y = verticalOffset;
+
+        _basePosition = headTransform.position + _anchorOffset;
+
+        Vector3 lookDirection = _basePosition - headTransform.position;
+        lookDirection.y = 0f;
+        if (lookDirection.sqrMagnitude < 0.0001f) lookDirection = offsetDirection;
+        Quaternion rotation = Quaternion.LookRotation(lookDirection.normalized, Vector3.up);
+
+        transform.SetPositionAndRotation(_basePosition + HoverOffset(), rotation);
         _initialized = true;
     }
 
-    private Vector3 ComputeDesiredPosition()
-    {
-        Vector3 forwardFlat = headTransform.forward;
-        forwardFlat.y = 0f;
-        if (forwardFlat.sqrMagnitude < 0.0001f) forwardFlat = Vector3.forward;
-        forwardFlat.Normalize();
+    private Vector3 HoverOffset() => Vector3.up * Mathf.Sin(Time.time * hoverSpeed) * hoverAmplitude;
 
-        Vector3 position = headTransform.position + forwardFlat * distance;
-        position.y = headTransform.position.y + verticalOffset;
-        return position;
-    }
-
-    private Quaternion ComputeDesiredRotation(Vector3 panelPosition)
+    private static Vector3 FlattenAndNormalize(Vector3 v)
     {
-        Vector3 lookDirection = panelPosition - headTransform.position;
-        if (keepUpright) lookDirection.y = 0f;
-        if (lookDirection.sqrMagnitude < 0.0001f) lookDirection = headTransform.forward;
-        return Quaternion.LookRotation(lookDirection.normalized, Vector3.up);
+        v.y = 0f;
+        return v.sqrMagnitude < 0.0001f ? Vector3.forward : v.normalized;
     }
 }

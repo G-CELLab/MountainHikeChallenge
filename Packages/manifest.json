@@ -1,8 +1,9 @@
 {
   "dependencies": {
     "com.hecomi.ulipsync": "https://github.com/hecomi/uLipSync.git#upm",
-    "com.unity.ai.assistant": "2.13.0-pre.2",
+    "com.unity.ai.assistant": "2.17.0-pre.1",
     "com.unity.ai.inference": "2.6.1",
+    "com.unity.ai.navigation": "2.0.14",
     "com.unity.feature.development": "1.0.2",
     "com.unity.ide.rider": "3.0.39",
     "com.unity.inputsystem": "1.19.0",

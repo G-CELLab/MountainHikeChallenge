@@ -1,7 +1,9 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.SceneManagement;
 
 /// <summary>
@@ -58,11 +60,6 @@ public class SceneFlowController : MonoBehaviour
                  "vs Summit) for the scene we're heading INTO, same as any other transition in the game.")]
         public AnatomySceneId nextSceneId;
 
-        [Tooltip("Extra safety net: skip narration if this exact (scene, checkpoint) combo has " +
-                 "already played once this session. Shouldn't normally trigger in a forward-only " +
-                 "flow, but guards against odd double-loads during testing.")]
-        public bool onlyNarrateOnFirstVisit = true;
-
         [Tooltip("Bump MiniGameSequencer.Instance.TrailCheckpointIndex when this step completes, " +
                  "so the NEXT time this scene is visited, it's treated as a later checkpoint.")]
         public bool advanceTrailCheckpointOnStart = false;
@@ -73,20 +70,22 @@ public class SceneFlowController : MonoBehaviour
         [Tooltip("Beat after narration completes before loading the next scene.")]
         public float delayAfterNarrationBeforeTransition = 1.5f;
 
-        [Tooltip("TESTING ONLY — check to mute just this step's narration line. Scene transition, " +
-                 "checkpoint advancement, and visited-tracking still happen exactly as normal — only " +
-                 "the spoken audio (and the tutor's gestures tied to it) are skipped. Leave unchecked " +
-                 "for anything you're not actively speeding through.")]
-        public bool skipNarrationForTesting = false;
-
-        [Tooltip("If checked, the automatic transition to nextSceneName WAITS for " +
-                 "MiniGameEvents.OnMiniGameComplete to fire with a system name matching this step's " +
-                 "sceneId (e.g. sceneId = Nervous fires on MiniGameEvents.TriggerMiniGameComplete(\"Nervous\")) " +
-                 "before proceeding — narration finishing (or being skipped for testing) is no longer " +
-                 "enough by itself to advance. Check this for any scene where the player must actually " +
-                 "finish the gesture minigame before moving on. Leave unchecked for narration-only scenes " +
-                 "with no minigame (Trailhead, Summit, etc.).")]
-        public bool waitForMiniGameCompletion = false;
+        [Tooltip("TESTING ONLY — check to blast through this step without the real narration/dialogue. " +
+                 "In a real playthrough every scene narrates and, if it maps to a BodySystem (see " +
+                 "GameManager.SystemsForScene), the transition always waits for that minigame's actual " +
+                 "completion — neither of those is optional, so there's nothing to configure there. " +
+                 "This single toggle covers everything needed to fake your way past both when testing:\n" +
+                 " • mutes the narration line (audio + tutor gestures)\n" +
+                 " • force-satisfies the dialogue half of MiniGameCompletionGate for this step's " +
+                 "system, since that narration line IS the Socratic dialogue's opening question (see " +
+                 "AITutor) — skip it and the dialogue never runs, so a gated system (Nervous, Skeletal " +
+                 "today) could never complete no matter how much of the physical interaction you finish\n" +
+                 " • if this step has a minigame, still gives the REAL MiniGameEvents.OnMiniGameComplete " +
+                 "a chance to fire (so you can actually play it during a quick test) but won't hang " +
+                 "forever — bails out after Testing Mini Game Timeout Seconds and advances anyway\n" +
+                 "Leave unchecked for anything you're not actively speeding through.")]
+        [FormerlySerializedAs("skipNarrationForTesting")]
+        public bool skipForTesting = false;
     }
 
     public static SceneFlowController Instance { get; private set; }
@@ -127,7 +126,7 @@ public class SceneFlowController : MonoBehaviour
              "(e.g. verifying checkpoint/transition logic end-to-end without sitting through audio).")]
     [SerializeField] private bool stayInSceneWhenSkippingForTesting = true;
 
-    [Tooltip("TESTING ONLY — for a step with waitForMiniGameCompletion checked, when narration is " +
+    [Tooltip("TESTING ONLY — for a step that has a minigame (its sceneId maps to a BodySystem), when " +
              "skipped for testing this is how long to wait for the REAL MiniGameEvents.OnMiniGameComplete " +
              "before giving up and advancing anyway. Lets you either actually play the minigame during a " +
              "quick test (transition still fires the instant you finish it) or just wait out the timeout " +
@@ -221,11 +220,11 @@ public class SceneFlowController : MonoBehaviour
             AnatomyTutorSession.SetScene(step.sceneId);
 
         // Scoped by scene+checkpoint, not scene name alone — a later visit to the
-        // same scene name is a different step with its own visited-state.
+        // same scene name is a different step with its own visited-state. Always
+        // skip a combo that's already played this session — this is a forward-only
+        // flow, so a repeat hit here just guards against an odd double-load.
         string visitKey = $"{sceneName}@checkpoint{step.checkpointIndex}";
-        bool alreadyVisited = MiniGameSequencer.Instance.HasVisited(visitKey);
-
-        if (step.onlyNarrateOnFirstVisit && alreadyVisited)
+        if (MiniGameSequencer.Instance.HasVisited(visitKey))
         {
             if (verbose)
                 Debug.Log($"[SceneFlowController] '{visitKey}' already visited — skipping flow.");
@@ -234,40 +233,57 @@ public class SceneFlowController : MonoBehaviour
             yield break;
         }
 
-        bool skipForTesting = skipAllNarrationForTesting || step.skipNarrationForTesting;
+        // A step "has a minigame" whenever its sceneId maps to a BodySystem (see
+        // GameManager.SystemsForScene) — that's exactly the set of scenes whose
+        // transition must wait for MiniGameEvents.OnMiniGameComplete rather than
+        // just narration finishing. Narration-only scenes (Trailhead, Summit,
+        // etc.) map to nothing and are never waited on.
+        bool hasMiniGame = GameManager.SystemsForScene(step.sceneId).Any();
+
+        bool skipForTesting = skipAllNarrationForTesting || step.skipForTesting;
         if (skipForTesting)
         {
             if (verbose)
-                Debug.Log($"[SceneFlowController] 🔇 Narration skipped for testing: '{visitKey}'.");
+                Debug.Log($"[SceneFlowController] 🔇 Skipped for testing: '{visitKey}'.");
 
             // Same bookkeeping the real completion handler does — testing
             // should still progress checkpoints/visited-state correctly, only
             // the actual audio/gesture playback is what's being skipped.
             MiniGameSequencer.Instance.MarkVisited(visitKey);
             if (step.advanceTrailCheckpointOnStart)
-            {
-                // Wait a frame before bumping. SceneFlowController is just one
-                // of several independent subscribers to SceneManager.sceneLoaded
-                // (PlayerRigPositioner, AIGuidePositioner, etc.), and Unity
-                // doesn't guarantee they all run before this coroutine does. The
-                // real (non-testing) narration path never hits this problem
-                // because the advance already happens seconds later, well after
-                // every other sceneLoaded subscriber for THIS load has finished
-                // — this just gives the testing-skip path that same guarantee
-                // instead of bumping the checkpoint mid-dispatch and stranding
-                // whichever subscriber happens to run after this one (e.g. the
-                // AI guide positioner reading a checkpoint no spawn point in
-                // this scene actually matches yet).
-                yield return null;
                 MiniGameSequencer.Instance.AdvanceTrailCheckpoint();
+
+            // The narration line we just skipped is also the Socratic dialogue's
+            // opening question (see AITutor) — skipping it means that dialogue
+            // never runs, so MiniGameCompletionGate.MarkDialogueResolved never
+            // fires on its own. For a gated system (Nervous, Skeletal today) that
+            // would leave the gate permanently unsatisfied even after the real
+            // physical interaction completes. Force it here so testing the
+            // interaction in isolation actually works.
+            foreach (BodySystem system in GameManager.SystemsForScene(step.sceneId))
+            {
+                MiniGameCompletionGate.MarkDialogueResolved(system);
+                if (verbose)
+                    Debug.Log($"[SceneFlowController] 🔇 Testing: force-marked dialogue resolved for " +
+                              $"'{system}' (narration/dialogue skipped, so the real Socratic Q&A never ran).");
             }
 
-            if (step.waitForMiniGameCompletion)
+            // "Requires a wait" covers either kind of real-world thing the player has to
+            // finish before moving on — a minigame interaction, or physically walking to
+            // the end of this trail segment. Both get the same testing-timeout treatment;
+            // only a step that needs neither (pure narration, nothing to finish) honors
+            // stayInSceneWhenSkippingForTesting. Walk detection is automatic — see
+            // AutoWalkController.WillWalkAtCurrentCheckpoint().
+            AutoWalkController walker = hasMiniGame ? null : FindAnyObjectByType<AutoWalkController>();
+            bool willWalk = walker != null && walker.WillWalkAtCurrentCheckpoint();
+            bool requiresWait = hasMiniGame || willWalk;
+
+            if (requiresWait)
             {
-                // Still give the real minigame-complete event a chance to fire
-                // (so you can actually play it during a quick test), but don't
-                // hang forever if you don't — bail out after the testing
-                // timeout and advance anyway.
+                // Still give the real completion signal (minigame OR walk arrival) a
+                // chance to fire (so you can actually play/walk it during a quick
+                // test), but don't hang forever if you don't — bail out after the
+                // testing timeout and advance anyway.
                 HandleFlowComplete(step, sceneName, testingMiniGameTimeoutSeconds);
             }
             else if (stayInSceneWhenSkippingForTesting)
@@ -341,8 +357,23 @@ public class SceneFlowController : MonoBehaviour
             return;
         }
 
-        if (step.waitForMiniGameCompletion)
+        // Any step whose sceneId maps to a BodySystem (see GameManager.SystemsForScene)
+        // has a real minigame to finish, so the transition always waits for
+        // MiniGameEvents.OnMiniGameComplete rather than trusting narration alone.
+        // Otherwise, ask the scene's AutoWalkController (if any) whether it's actually
+        // going to walk at the current checkpoint — automatic, not a manually-set flag,
+        // so it can't drift out of sync with the actual checkpoint/waypoint/required-
+        // systems configuration the way a separate checkbox could.
+        bool hasMiniGame = GameManager.SystemsForScene(step.sceneId).Any();
+        if (hasMiniGame)
+        {
             StartCoroutine(WaitForMiniGameThenTransition(step, miniGameTimeoutSeconds));
+            return;
+        }
+
+        AutoWalkController walker = FindAnyObjectByType<AutoWalkController>();
+        if (walker != null && walker.WillWalkAtCurrentCheckpoint())
+            StartCoroutine(WaitForWalkThenTransition(step, walker, miniGameTimeoutSeconds));
         else
             StartCoroutine(TransitionAfterDelay(step));
     }
@@ -400,6 +431,56 @@ public class SceneFlowController : MonoBehaviour
 
         if (completed && verbose)
             Debug.Log($"[SceneFlowController] ✅ Minigame '{expectedSystem}' complete — proceeding to transition.");
+
+        yield return TransitionAfterDelay(step);
+    }
+
+    /// <summary>
+    /// Blocks the transition until the scene's AutoWalkController fires its
+    /// OnWalkCompleted event — i.e. the player has physically reached the end
+    /// of this segment's waypoint path — instead of a fixed delay that has no
+    /// idea whether the walk actually finished. Caller already resolved
+    /// (and confirmed via WillWalkAtCurrentCheckpoint) which walker to use.
+    /// </summary>
+    private IEnumerator WaitForWalkThenTransition(SceneFlowStep step, AutoWalkController walker, float timeoutSeconds = 0f)
+    {
+        bool completed = false;
+
+        UnityEngine.Events.UnityAction handler = null;
+        handler = () =>
+        {
+            completed = true;
+            walker.OnWalkCompleted.RemoveListener(handler);
+        };
+        walker.OnWalkCompleted.AddListener(handler);
+
+        if (verbose)
+        {
+            string timeoutNote = timeoutSeconds > 0f ? $" (testing timeout: {timeoutSeconds}s)" : "";
+            Debug.Log($"[SceneFlowController] Waiting for walk completion before transitioning to '{step.nextSceneName}'{timeoutNote}...");
+        }
+
+        // timeoutSeconds <= 0 means "real playthrough" — wait indefinitely for
+        // the actual arrival. Only the testing-skip path passes a positive timeout.
+        float elapsed = 0f;
+        while (!completed)
+        {
+            if (timeoutSeconds > 0f)
+            {
+                elapsed += Time.deltaTime;
+                if (elapsed >= timeoutSeconds)
+                {
+                    walker.OnWalkCompleted.RemoveListener(handler);
+                    if (verbose)
+                        Debug.Log($"[SceneFlowController] ⏱ Testing timeout ({timeoutSeconds}s) reached waiting for walk — advancing without real arrival.");
+                    break;
+                }
+            }
+            yield return null;
+        }
+
+        if (completed && verbose)
+            Debug.Log("[SceneFlowController] ✅ Walk complete — proceeding to transition.");
 
         yield return TransitionAfterDelay(step);
     }
