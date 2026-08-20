@@ -18,16 +18,32 @@ using UnityEngine.SceneManagement;
 /// </summary>
 public class AIGuidePositioner : MonoBehaviour
 {
+    [Header("References")]
+    [Tooltip("The guide's own transform to move. Leave empty to default to this GameObject's own " +
+             "transform (correct when this script lives directly on Carla, as it does in this project).")]
+    public Transform guideTransform;
+
+    [Tooltip("Optional. If assigned, the initial placement uses NavMeshAgent.Warp() instead of a raw " +
+             "transform move, so the agent's internal position is in sync with the NavMesh from the " +
+             "start — required for AIGuideFollowController to path correctly right after a scene load. " +
+             "Leave empty if the guide doesn't have a NavMeshAgent.")]
+    public UnityEngine.AI.NavMeshAgent navMeshAgent;
+
     [Header("Scenes Without a Spawn Point")]
     [Tooltip("Scene names that intentionally have no AIGuideSpawnPoint (e.g. Bootstrap).")]
     public string[] scenesWithoutSpawnPoint = { "-1_Bootstrap" };
 
-    [Header("Optional")]
-    [Tooltip("If the guide uses a NavMeshAgent, assign it here so we Warp() instead of moving the transform directly (avoids NavMesh desync).")]
-    public UnityEngine.AI.NavMeshAgent navMeshAgent;
-
     [Header("Debug")]
     public bool verbose = true;
+
+    private void Awake()
+    {
+        if (guideTransform == null)
+            guideTransform = transform;
+
+        if (navMeshAgent == null)
+            navMeshAgent = GetComponent<UnityEngine.AI.NavMeshAgent>();
+    }
 
     private void OnEnable()
     {
@@ -45,6 +61,12 @@ public class AIGuidePositioner : MonoBehaviour
         {
             if (verbose)
                 Debug.Log($"[AIGuidePositioner] '{scene.name}' has no spawn point by design — skipping.");
+            return;
+        }
+
+        if (guideTransform == null)
+        {
+            Debug.LogWarning("[AIGuidePositioner] No guideTransform assigned — cannot position the AI guide.");
             return;
         }
 
@@ -68,20 +90,25 @@ public class AIGuidePositioner : MonoBehaviour
 
     private void MoveTo(Vector3 position, Quaternion rotation)
     {
-        // Always move the top of the hierarchy, not just whatever object this
-        // script happens to be attached to — otherwise, if this script lives
-        // on a child (e.g. an "AI Logic" object under the visible character),
-        // only that child moves and the visible model gets left behind.
-        Transform root = transform.root;
-
         if (navMeshAgent != null && navMeshAgent.enabled)
         {
-            navMeshAgent.Warp(position);
-            root.rotation = rotation;
+            bool warped = navMeshAgent.Warp(position);
+            guideTransform.rotation = rotation;
+
+            if (!warped)
+            {
+                // Warp fails if the target point isn't close enough to a baked
+                // NavMesh triangle — make sure the NavMesh is baked and covers
+                // every AIGuideSpawnPoint in this scene (Window > AI > Navigation).
+                Debug.LogWarning($"[AIGuidePositioner] NavMeshAgent.Warp failed at {position} — " +
+                                  "is the NavMesh baked and does it cover this spawn point? " +
+                                  "Falling back to a direct transform move.");
+                guideTransform.position = position;
+            }
         }
         else
         {
-            root.SetPositionAndRotation(position, rotation);
+            guideTransform.SetPositionAndRotation(position, rotation);
         }
     }
 }

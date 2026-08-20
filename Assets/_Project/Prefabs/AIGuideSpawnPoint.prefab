@@ -9,7 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7037610654914571474}
-  - component: {fileID: 4422107085299641628}
+  - component: {fileID: 4934159600381556612}
   m_Layer: 0
   m_Name: AIGuideSpawnPoint
   m_TagString: Untagged
@@ -32,7 +32,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: -155.392, z: 0}
---- !u!114 &4422107085299641628
+--- !u!114 &4934159600381556612
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -41,6 +41,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1447653604746491101}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 52e401b283cf9c249b54d0d010628452, type: 3}
+  m_Script: {fileID: 11500000, guid: 730edd384b412834695f44a5cc453351, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AIGuideSpawnPoint
+  checkpointIndex: 0
