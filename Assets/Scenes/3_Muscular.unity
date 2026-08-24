@@ -752,6 +752,10 @@ PrefabInstance:
       propertyPath: m_ConstrainProportionsScale
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: -3056041028626425089, guid: bba35249fa1b7b049ae4438b7f572254, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: c576222322d71bf4eba8f432095a94c1, type: 2}
     - target: {fileID: 919132149155446097, guid: bba35249fa1b7b049ae4438b7f572254, type: 3}
       propertyPath: m_Name
       value: Skeletal Muscle Fibre Anatomy
